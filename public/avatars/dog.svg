@@ -1,0 +1,18 @@
+<svg viewBox="0 0 96 96"  fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Floppy Ears Dropping Down Sides -->
+                <path d="M12 28 C8 44, 10 62, 22 64 C26 56, 24 40, 20 28 Z" fill="#451a03" />
+                <path d="M84 28 C88 44, 86 62, 74 64 C70 56, 72 40, 76 28 Z" fill="#451a03" />
+
+                <!-- Happy Arched Eyes -->
+                <path d="M30 46 C32 40, 40 40, 42 46" stroke="#451a03" stroke-width="3" stroke-linecap="round" fill="none" />
+                <path d="M54 46 C56 40, 64 40, 66 46" stroke="#451a03" stroke-width="3" stroke-linecap="round" fill="none" />
+
+                <!-- Big Round Nose -->
+                <ellipse cx="48" cy="55" rx="7" ry="5.5" fill="#451a03" />
+                <ellipse cx="46" cy="53" rx="2" ry="1.2" fill="#ffffff" opacity="0.6" />
+
+                <!-- Happy Dog Tongue / Mouth -->
+                <path d="M48 60.5 L48 65" stroke="#451a03" stroke-width="2" stroke-linecap="round" />
+                <path d="M42 64 Q48 70 54 64" stroke="#451a03" stroke-width="2" stroke-linecap="round" fill="none" />
+                <path d="M45 66 Q48 73 51 66 Z" fill="#f43f5e" />
+              </svg>

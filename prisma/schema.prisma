@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum GameMode {
+  CLASSIC
+  FOG_OF_WAR
+}
+
+model Match {
+  id            String      @id @default(uuid())
+  inviteCode    String      @unique
+  status        String      @default("LOBBY") // LOBBY, PLAYING, FINISHED
+  hostId        String
+  currentTurnId String? // References Player.id
+  turnEndsAt    DateTime?
+  hasRolled     Boolean     @default(false)
+
+  // Host Toggles
+  gameMode      GameMode    @default(FOG_OF_WAR)
+  startingCash  Int         @default(1500)
+  mortgageRule  String      @default("ORIGINAL") // "ORIGINAL" or "FLAT_100"
+  passUpRule    String      @default("HIDDEN") // "HIDDEN" or "AUCTION"
+  evenBuild     Boolean     @default(true) // Enforce Monopoly even-build rule
+  enableBank    Boolean     @default(true) // Allow bank loans feature
+
+  players       Player[]
+  tiles         MatchTile[]
+  logs          GameLog[]
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model Player {
+  id         String  @id @default(uuid())
+  matchId    String
+  name       String
+  avatar     String?
+  cash       Int     @default(0)
+  position   Int     @default(0) // Board index 0-39
+  inJail           Boolean @default(false)
+  jailTurns        Int     @default(0)
+  isBankrupt       Boolean @default(false)
+  turnOrder        Int     @default(0)
+  color            String  @default("#ffffff")
+  turnsPlayed      Int     @default(0)
+  loanType         String? // 'NORMAL' or 'BANKRUPTCY'
+  loanPrincipal    Int     @default(0)
+  loanInterest     Int     @default(0)
+  loanDeadlineTurn Int?    // Exact player turn number the loan is due
+  isLiquidating    Boolean @default(false)
+  hasDefaulted     Boolean @default(false)
+
+  match      Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+}
+
+model Property {
+  id               String      @id @default(uuid())
+  name             String
+  colorSet         String
+  price            Int
+  rent             Int[]
+  houseCost        Int
+  originalMortgage Int
+  isUtility        Boolean     @default(false)
+  isTransit        Boolean     @default(false)
+
+  matchTiles       MatchTile[]
+}
+
+model MatchTile {
+  id         String    @id @default(uuid())
+  matchId    String
+  boardIndex Int // 0 to 39
+  tileType   String    @default("PROPERTY") // PROPERTY, GO, JAIL, FREE_PARKING, GO_TO_JAIL, CHANCE, CHEST, TAX
+  isRevealed Boolean   @default(false)
+  ownerId    String? // References Player.id
+  propertyId String? // Nullable for non-property tiles
+  houses     Int       @default(0)
+  isMortgaged Boolean  @default(false)
+
+  property   Property? @relation(fields: [propertyId], references: [id])
+  match      Match     @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, boardIndex])
+  @@index([matchId])
+}
+
+model GameLog {
+  id        String   @id @default(uuid())
+  matchId   String
+  message   String
+  type      String   // e.g., 'system', 'purchase', 'rent', 'alert'
+  createdAt DateTime @default(now())
+
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId])
+  @@index([createdAt])
+}

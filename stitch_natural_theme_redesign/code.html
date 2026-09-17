@@ -1,0 +1,668 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>Fog of War Monopoly - Tabletop Edition</title>
+<!-- Tailwind CSS CDN with forms and container queries plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tabletop: '#131b26',
+            feltDark: '#0e1620',
+            parchment: '#f1e2c3',
+            parchmentBorder: '#dfcba5',
+            parchmentDark: '#d9c298',
+            terracotta: '#bd633f',
+            leather: '#613b22',
+            leatherDark: '#442714',
+            goldBorder: '#c39d5e',
+          },
+          fontFamily: {
+            serif: ['Georgia', 'Cambria', 'serif'],
+            sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+<!-- BEGIN: CSS Stylesheets -->
+<style data-purpose="tabletop-felt-texture">
+    /* Tabletop Felt Texture Simulation */
+    body {
+      background-color: #121a24;
+      background-image: 
+        radial-gradient(circle at 50% 40%, rgba(30, 48, 68, 0.45) 0%, rgba(10, 16, 24, 0.95) 100%),
+        repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.012) 0px, rgba(255, 255, 255, 0.012) 2px, transparent 2px, transparent 4px),
+        repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 2px, transparent 2px, transparent 4px);
+      min-height: 100vh;
+      color: #e5d8be;
+    }
+  </style>
+<style data-purpose="tactile-effects">
+    /* Tactile 3D Title Font */
+    .title-emboss {
+      font-family: 'Cinzel', 'Georgia', serif;
+      letter-spacing: 0.08em;
+      color: #b59567;
+      text-shadow: 
+        0px 2px 4px rgba(0,0,0,0.9),
+        0px -1px 1px rgba(255,255,255,0.25),
+        0px 1px 1px #4e3c23;
+    }
+
+    /* Deckled / Torn Parchment Edge and Shadow */
+    .parchment-card {
+      background: #f1e4c7;
+      background-image: radial-gradient(circle at center, #fbf2db 0%, #ecdcb6 100%);
+      box-shadow: 
+        0 20px 45px rgba(0, 0, 0, 0.75),
+        0 4px 10px rgba(0, 0, 0, 0.5),
+        inset 0 0 45px rgba(168, 126, 73, 0.28);
+      position: relative;
+    }
+
+    /* Deckled Edge effect via subtle border notches */
+    .deckled-edges {
+      filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.65));
+      clip-path: polygon(
+        0% 2px, 3% 0%, 6% 3px, 12% 1px, 18% 3px, 24% 0px, 32% 2px, 40% 1px, 51% 3px, 62% 0px, 72% 2px, 81% 1px, 91% 3px, 98% 0px, 100% 2px,
+        100% 98%, 97% 100%, 92% 98%, 85% 99%, 77% 97%, 68% 100%, 58% 98%, 47% 99%, 39% 97%, 29% 100%, 21% 98%, 11% 99%, 4% 98%, 0% 100%
+      );
+    }
+
+    /* Embossed Buttons */
+    .btn-terracotta {
+      background: linear-gradient(180deg, #c76f4b 0%, #a45330 100%);
+      border: 2px solid #81391d;
+      box-shadow: 
+        0 4px 8px rgba(0,0,0,0.45),
+        inset 0 1px 1px rgba(255,255,255,0.35),
+        inset 0 -2px 3px rgba(0,0,0,0.3);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.6);
+    }
+    .btn-terracotta:hover {
+      background: linear-gradient(180deg, #d37953 0%, #b25b36 100%);
+      transform: translateY(-1px);
+    }
+    .btn-terracotta:active {
+      transform: translateY(1px);
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .btn-dark-slate {
+      background: linear-gradient(180deg, #374351 0%, #252e39 100%);
+      border: 2px solid #1c232c;
+      box-shadow: 
+        0 4px 8px rgba(0,0,0,0.45),
+        inset 0 1px 1px rgba(255,255,255,0.2),
+        inset 0 -2px 3px rgba(0,0,0,0.4);
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .btn-dark-slate:hover {
+      background: linear-gradient(180deg, #404e5e 0%, #2c3744 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-wood-gold {
+      background: linear-gradient(180deg, #bfa065 0%, #99783f 100%);
+      border: 1px solid #7c5d2c;
+      box-shadow: 
+        0 4px 10px rgba(0,0,0,0.3),
+        inset 0 1px 1px rgba(255,255,255,0.4);
+    }
+    .btn-wood-gold:hover {
+      background: linear-gradient(180deg, #caa96f 0%, #a48247 100%);
+    }
+
+    /* Stitched Leather Panel for Lobby */
+    .leather-panel {
+      background: #5c3b24;
+      background-image: 
+        radial-gradient(circle at 50% 30%, #6e462b 0%, #462c1a 100%),
+        repeating-radial-gradient(circle at 10% 10%, rgba(255,255,255,0.01) 0, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 6px);
+      border: 8px solid #3c2414;
+      box-shadow: 
+        0 20px 40px rgba(0,0,0,0.8),
+        inset 0 0 30px rgba(0,0,0,0.7);
+      outline: 1px dashed rgba(200, 160, 100, 0.4);
+      outline-offset: -5px;
+    }
+
+    /* Brass Corner Brackets */
+    .brass-corner-tl {
+      position: absolute;
+      top: -3px;
+      left: -3px;
+      width: 24px;
+      height: 24px;
+      border-top: 5px solid #d4af62;
+      border-left: 5px solid #d4af62;
+      border-top-left-radius: 4px;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6));
+    }
+    .brass-corner-tr {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      width: 24px;
+      height: 24px;
+      border-top: 5px solid #d4af62;
+      border-right: 5px solid #d4af62;
+      border-top-right-radius: 4px;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6));
+    }
+    .brass-corner-bl {
+      position: absolute;
+      bottom: -3px;
+      left: -3px;
+      width: 24px;
+      height: 24px;
+      border-bottom: 5px solid #d4af62;
+      border-left: 5px solid #d4af62;
+      border-bottom-left-radius: 4px;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6));
+    }
+    .brass-corner-br {
+      position: absolute;
+      bottom: -3px;
+      right: -3px;
+      width: 24px;
+      height: 24px;
+      border-bottom: 5px solid #d4af62;
+      border-right: 5px solid #d4af62;
+      border-bottom-right-radius: 4px;
+      filter: drop-shadow(0 2px 2px rgba(0,0,0,0.6));
+    }
+
+    /* Animal Wooden Tokens */
+    .token-wood {
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      box-shadow: 
+        0 6px 12px rgba(0,0,0,0.45),
+        inset 0 2px 3px rgba(255,255,255,0.4),
+        inset 0 -3px 4px rgba(0,0,0,0.5);
+    }
+    .token-wood:hover {
+      transform: translateY(-4px) scale(1.06);
+    }
+    .token-wood.selected {
+      transform: translateY(-5px) scale(1.12);
+      outline: 4px solid #f6d177;
+      box-shadow: 0 0 18px rgba(246, 209, 119, 0.8), 0 8px 16px rgba(0,0,0,0.6);
+    }
+
+    /* Custom range slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      height: 8px;
+      background: #2f1d10;
+      border-radius: 4px;
+      border: 1px solid #7a5433;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.7);
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 22px;
+      width: 22px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #ca8858, #743f1f);
+      border: 2px solid #ecd8af;
+      margin-top: -7px;
+      cursor: pointer;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.6);
+    }
+  </style>
+<!-- END: CSS Stylesheets -->
+</head>
+<body class="flex flex-col justify-between items-center selection:bg-amber-800 selection:text-white">
+<!-- BEGIN: Tabletop Floating Bar -->
+
+<!-- END: Tabletop Floating Bar -->
+<!-- BEGIN: Main Stage Container -->
+<main class="flex-grow w-full max-w-6xl mx-auto px-4 py-8 flex flex-col items-center justify-center relative">
+<!-- ============================================== -->
+<!-- SCREEN 1: MAIN MENU (Matches IMAGE_3) -->
+<!-- ============================================== -->
+<section class="w-full flex-col items-center transition-all duration-300 hidden" data-purpose="screen-main-menu" id="screen-main">
+<!-- Fog of War Monopoly Title -->
+<div class="text-center mb-8">
+<h1 class="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
+          Fog of War<br>Monopoly
+        </h1>
+</div>
+<!-- Main Menu Parchment Card -->
+<div class="deckled-edges parchment-card w-full max-w-[490px] rounded-sm p-6 sm:p-9 text-[#422c16]">
+<!-- Buttons Group -->
+<div class="space-y-4 mb-8">
+<!-- CREATE MATCH Button -->
+<button class="btn-terracotta w-full py-3.5 px-6 rounded-lg text-white font-bold tracking-wider text-base sm:text-lg flex items-center justify-center uppercase transition" onclick="switchScreen('screen-character')">
+            Create Match
+          </button>
+<!-- JOIN MATCH Button -->
+<button class="btn-dark-slate w-full py-3.5 px-6 rounded-lg text-white font-bold tracking-wider text-base sm:text-lg flex items-center justify-center uppercase transition" onclick="switchScreen('screen-invite')">
+            Join Match
+          </button>
+</div>
+<!-- Rules Divider & Explanation -->
+<div class="border-t border-[#ceba94] pt-5 text-center">
+<div class="text-[11px] font-bold tracking-widest text-[#7c5b36] uppercase mb-3">
+            How It Works
+          </div>
+<div class="space-y-1.5 text-xs sm:text-[13px] leading-relaxed text-[#513b24]">
+<p class="">
+<strong class="font-bold text-[#35200f]">Blind Buy:</strong> Properties are hidden until purchased.
+            </p>
+<p class="">
+<strong class="font-bold text-[#35200f]">Chaos Shuffle:</strong> Bankruptcy scrambles the board.
+            </p>
+</div>
+</div>
+</div>
+</section>
+<!-- ============================================== -->
+<!-- SCREEN 2: INVITE CODE (Matches IMAGE_4) -->
+<!-- ============================================== -->
+<section class="w-full flex-col items-center transition-all duration-300 flex" data-purpose="screen-invite-code" id="screen-invite">
+<!-- Title -->
+<div class="text-center mb-8">
+<h1 class="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
+          Fog of War<br>Monopoly
+        </h1>
+</div>
+<!-- Brass Framed Parchment Card -->
+<div class="relative bg-[#f1e3c5] border-4 border-[#52341d] rounded shadow-2xl w-full max-w-[500px] p-6 sm:p-8 text-[#4a3420]">
+<!-- Brass Corners -->
+<div class="brass-corner-tl"></div>
+<div class="brass-corner-tr"></div>
+<div class="brass-corner-bl"></div>
+<div class="brass-corner-br"></div>
+<!-- Back Button -->
+<button class="text-xs font-bold uppercase tracking-wider text-[#694828] hover:text-black mb-5 inline-flex items-center transition" onclick="switchScreen('screen-main')">
+          ← Back
+        </button>
+<!-- Form Elements -->
+<div class="space-y-6">
+<div>
+<label class="block text-xs font-bold uppercase tracking-widest text-[#6d4c2b] mb-2" for="invite-code-input">
+              Invite Code
+            </label>
+<div class="relative bg-[#ebd8b1] border-2 border-[#b5986e] rounded p-2 shadow-inner">
+<input class="w-full bg-transparent border-none text-center font-mono font-bold text-xl sm:text-2xl tracking-[0.25em] text-[#4a331c] focus:ring-0 focus:outline-none" id="invite-code-input" maxlength="14" type="text" value="A B C 1 2 3">
+</div>
+</div>
+<!-- Next Button -->
+<button class="btn-wood-gold w-full py-3.5 px-6 rounded text-white font-bold tracking-widest text-sm sm:text-base flex items-center justify-center uppercase transition" onclick="switchScreen('screen-character')">
+            Next →
+          </button>
+</div>
+</div>
+</section>
+<!-- ============================================== -->
+<!-- SCREEN 3: CHARACTER SELECT (Matches IMAGE_2) -->
+<!-- ============================================== -->
+<section class="w-full flex-col items-center transition-all duration-300 hidden" data-purpose="screen-character-select" id="screen-character">
+<!-- Title -->
+<div class="text-center mb-6">
+<h1 class="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
+          Fog of War<br>Monopoly
+        </h1>
+</div>
+<!-- Character Select Parchment Card -->
+<div class="deckled-edges parchment-card w-full max-w-[620px] rounded-sm p-6 sm:p-8 text-[#4a3420]">
+<!-- Back Link -->
+<button class="text-xs font-bold uppercase tracking-wider text-[#6c4c2a] hover:text-black mb-4 inline-flex items-center transition" onclick="switchScreen('screen-main')">
+          ← Back
+        </button>
+<!-- Name Input -->
+<div class="mb-5">
+<label class="block text-xs font-bold uppercase tracking-wider text-[#6e4c2b] mb-1.5" for="player-name-input">
+            Your Name
+          </label>
+<input class="w-full bg-[#ebd7af]/80 border border-[#bfa67c] rounded-md px-3.5 py-2.5 text-sm text-[#46311d] placeholder-[#8d7554] shadow-inner focus:outline-none focus:border-amber-700" id="player-name-input" placeholder="Enter your name..." type="text" value="hello">
+</div>
+<!-- Player Appearance Badge -->
+<div class="text-center my-4">
+<span class="inline-block px-4 py-1 rounded-full text-[11px] font-bold tracking-widest uppercase text-[#fbebd0] bg-[#674426] border border-[#8b613c] shadow-sm">
+            • Player Appearance
+          </span>
+<h2 class="text-base sm:text-lg font-bold text-[#3d2915] mt-2">
+            Choose your character:
+          </h2>
+</div>
+<!-- 6 Wooden Animal Tokens -->
+<div class="grid grid-cols-3 sm:grid-cols-6 gap-3 sm:gap-2 my-5 text-center" data-purpose="token-selection-grid">
+<!-- Token: The Cat -->
+<div class="flex flex-col items-center cursor-pointer group" onclick="selectToken(this, 'The Cat', '#b57948')">
+<div class="token-wood w-14 h-14 rounded-full bg-[#b57948] border-2 border-[#693e1b] flex items-center justify-center text-2xl relative">
+              🐱
+            </div>
+<span class="text-xs font-semibold text-[#4e341b] mt-1.5">The Cat</span>
+</div>
+<!-- Token: The Fox -->
+<div class="flex flex-col items-center cursor-pointer group" onclick="selectToken(this, 'The Fox', '#ba543b')">
+<div class="token-wood w-14 h-14 rounded-full bg-[#ba543b] border-2 border-[#6d2717] flex items-center justify-center text-2xl relative">
+              🦊
+            </div>
+<span class="text-xs font-semibold text-[#4e341b] mt-1.5">The Fox</span>
+</div>
+<!-- Token: The Dog (Default selected) -->
+<div class="flex flex-col items-center cursor-pointer group" onclick="selectToken(this, 'The Dog', '#c9964a')">
+<div class="token-wood w-14 h-14 rounded-full bg-[#c9964a] border-2 border-[#76511b] flex items-center justify-center text-2xl relative" id="token-dog-el">
+              🐶
+            </div>
+<span class="text-xs font-semibold text-[#4e341b] mt-1.5">The Dog</span>
+</div>
+<!-- Token: The Bear -->
+<div class="flex flex-col items-center cursor-pointer group" onclick="selectToken(this, 'The Bear', '#557252')">
+<div class="token-wood w-14 h-14 rounded-full bg-[#557252] border-2 border-[#2b4129] flex items-center justify-center text-2xl relative selected">
+              🐻
+            </div>
+<span class="text-xs font-semibold text-[#4e341b] mt-1.5">The Bear</span>
+</div>
+<!-- Token: The Bunny -->
+<div class="flex flex-col items-center cursor-pointer group" onclick="selectToken(this, 'The Bunny', '#cbb38b')">
+<div class="token-wood w-14 h-14 rounded-full bg-[#cbb38b] border-2 border-[#796443] flex items-center justify-center text-2xl relative">
+              🐰
+            </div>
+<span class="text-xs font-semibold text-[#4e341b] mt-1.5">The Bunny</span>
+</div>
+<!-- Token: The Owl -->
+<div class="flex flex-col items-center cursor-pointer group" onclick="selectToken(this, 'The Owl', '#675276')">
+<div class="token-wood w-14 h-14 rounded-full bg-[#675276] border-2 border-[#382644] flex items-center justify-center text-2xl relative">
+              🦉
+            </div>
+<span class="text-xs font-semibold text-[#4e341b] mt-1.5">The Owl</span>
+</div>
+</div>
+<!-- Selection Note -->
+<p class="text-center text-xs text-[#7a5937] italic mb-4" id="selection-status-label">Selected: <strong class="not-italic text-[#462e17]">The Bear</strong></p>
+<!-- Submit Button -->
+<button class="btn-wood-gold w-full py-3.5 px-6 rounded text-white font-bold tracking-wider text-sm sm:text-base flex items-center justify-center uppercase transition" onclick="confirmAndJoinLobby()">
+          Confirm &amp; Join →
+        </button>
+</div>
+</section>
+<!-- ============================================== -->
+<!-- SCREEN 4: GAME LOBBY (Matches IMAGE_1) -->
+<!-- ============================================== -->
+<section class="w-full flex-col items-center transition-all duration-300 hidden" data-purpose="screen-game-lobby" id="screen-lobby">
+<!-- Torn Parchment Header Banner -->
+<div class="deckled-edges parchment-card px-8 py-3 mb-6 shadow-xl border border-[#c5ae81]">
+<h1 class="title-emboss text-2xl sm:text-3xl font-extrabold uppercase tracking-widest text-[#56361a] text-center">
+          Fog of War Monopoly
+        </h1>
+</div>
+<!-- Leather Setup Panel -->
+<div class="leather-panel relative rounded-lg w-full max-w-[480px] p-5 sm:p-7 text-[#ecdac0]">
+<!-- Brass Corners -->
+<div class="brass-corner-tl"></div>
+<div class="brass-corner-tr"></div>
+<div class="brass-corner-bl"></div>
+<div class="brass-corner-br"></div>
+<!-- Top Status Bar: Room & Visibility -->
+<div class="flex items-center justify-between text-xs font-mono uppercase tracking-wider text-[#d3be9c] mb-5 border-b border-[#734b2f] pb-3">
+<div class="flex items-center space-x-1.5">
+<span class="text-sm">▦</span>
+<span class="">Room: <strong class="text-amber-200" id="lobby-room-code">#YETT3X</strong></span>
+</div>
+<span class="px-2.5 py-0.5 rounded bg-[#492d1a] border border-[#835634] text-[10px] tracking-widest font-sans font-bold text-amber-300">
+            Public
+          </span>
+</div>
+<!-- Players Section -->
+<div class="mb-5">
+<div class="flex justify-between items-center text-[11px] font-bold tracking-wider uppercase text-[#c3a47a] mb-2">
+<span class="">Players (1/6)</span>
+</div>
+<div class="space-y-2">
+<!-- Player Slot: Host (Active) -->
+<div class="bg-[#f0e2c2] text-[#412913] rounded-md p-2.5 flex items-center justify-between border border-[#e1ce9e] shadow">
+<div class="flex items-center space-x-3">
+<div class="w-9 h-9 rounded-full bg-[#c9964a] border border-[#76511b] flex items-center justify-center text-lg shadow-inner" id="host-token-badge">🐻</div>
+<div>
+<div class="flex items-center space-x-1.5 leading-none">
+<span class="font-bold text-sm text-[#38220f]" id="host-player-name">hello</span>
+<span class="text-[10px] text-[#6d4d29] uppercase font-bold">(You)</span>
+</div>
+<div class="text-[10px] font-bold text-amber-800 flex items-center space-x-1 mt-0.5">
+<span class="">👑</span>
+<span class="tracking-widest">HOST</span>
+</div>
+</div>
+</div>
+<span class="w-3.5 h-3.5 rounded-full bg-amber-500 border border-amber-300 shadow"></span>
+</div>
+<!-- Player Slot: Empty / Waiting -->
+<div class="bg-[#3b2314]/70 border border-dashed border-[#71482b] rounded-md p-2.5 flex items-center space-x-3 text-[#9a7657]">
+<div class="w-8 h-8 rounded-full border border-[#5d3b23] flex items-center justify-center font-bold text-xs bg-[#2f1b0e]">
+                ?
+              </div>
+<span class="text-xs italic tracking-wide">Waiting for player...</span>
+</div>
+</div>
+</div>
+<!-- Starting Cash Slider Control -->
+<div class="mb-5 bg-[#4c2f1b] p-3 rounded border border-[#6b4427]">
+<div class="flex justify-between items-center mb-1">
+<span class="text-xs font-bold uppercase tracking-wider text-[#d3b690]">Starting Cash</span>
+<span class="text-sm font-bold text-amber-200" id="cash-value-display">$1,500 <span class="text-[10px] font-normal text-amber-400">USD</span></span>
+</div>
+<input class="w-full cursor-pointer my-1" id="cash-slider" max="3000" min="500" oninput="updateCash(this.value)" step="250" type="range" value="1500">
+<div class="flex justify-between text-[10px] text-[#a4825d] font-mono">
+<span class="">$500</span>
+<span class="">$1,750</span>
+<span class="">$3,000</span>
+</div>
+</div>
+<!-- Rules Toggles -->
+<div class="space-y-2 mb-6">
+<!-- Mortgage Rule Toggle -->
+<div class="bg-[#f2e5c8] text-[#412c17] rounded p-2.5 flex items-center justify-between border border-[#ddcaa2] shadow-sm">
+<div>
+<div class="text-xs font-bold uppercase tracking-wider text-[#35210f]">Mortgage Rule</div>
+<div class="text-[11px] text-[#694e32]">Original 50% Equity</div>
+</div>
+<button class="w-12 h-6 rounded-full bg-[#492e1b] p-0.5 border border-[#684126] transition-colors relative flex items-center" data-state="on" onclick="toggleSwitch(this)">
+<span class="w-5 h-5 rounded-full bg-[#ecd5a8] shadow-md transform translate-x-6 transition-transform"></span>
+</button>
+</div>
+<!-- Pass-Up Rule Toggle -->
+<div class="bg-[#f2e5c8] text-[#412c17] rounded p-2.5 flex items-center justify-between border border-[#ddcaa2] shadow-sm">
+<div>
+<div class="text-xs font-bold uppercase tracking-wider text-[#35210f]">Pass-Up Rule</div>
+<div class="text-[11px] text-[#694e32]">Stays hidden</div>
+</div>
+<button class="w-12 h-6 rounded-full bg-[#492e1b] p-0.5 border border-[#684126] transition-colors relative flex items-center" data-state="on" onclick="toggleSwitch(this)">
+<span class="w-5 h-5 rounded-full bg-[#ecd5a8] shadow-md transform translate-x-6 transition-transform"></span>
+</button>
+</div>
+</div>
+<!-- START GAME Button -->
+<button class="btn-terracotta w-full py-3.5 px-4 rounded-md text-white font-bold tracking-widest text-base uppercase transition" onclick="startGamePrompt()">
+          Start Game
+        </button>
+</div>
+</section>
+</main>
+<!-- END: Main Stage Container -->
+<!-- BEGIN: Tabletop Footer -->
+<footer class="w-full text-center py-3 text-xs text-[#6e5d47] border-t border-[#1e2a38]" data-purpose="footer-status">
+<p class="">Fog of War Monopoly • High Tactile Tabletop Engine • HTML5 &amp; Tailwind</p>
+</footer>
+<!-- END: Tabletop Footer -->
+<!-- BEGIN: Export / Download Modal -->
+<div class="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm items-center justify-center p-4 hidden" id="export-modal">
+<div class="bg-[#1e293b] border-2 border-amber-600/70 rounded-lg max-w-lg w-full p-6 text-[#e2e8f0] shadow-2xl relative">
+<h3 class="text-lg font-bold text-amber-300 flex items-center space-x-2">
+<span class="">📦</span>
+<span class="">Download ZIP &amp; Asset Bundle</span>
+</h3>
+<p class="text-xs text-gray-300 mt-2 leading-relaxed">
+        This package includes the entire single-page Fog of War tabletop application, textures, vector tokens, and styling sheet ready for hosting or integration.
+      </p>
+<div class="bg-[#0f172a] rounded p-3 my-4 text-xs font-mono text-amber-200/90 border border-slate-700 space-y-1">
+<div class="">✓ index.html (Complete single file app)</div>
+<div class="">✓ Tailwind CSS Configuration (Tactile Theme)</div>
+<div class="">✓ Embedded Vector Animal Tokens (6 Archetypes)</div>
+<div class="">✓ Tactile Texture Shaders (Felt, Parchment, Stitched Leather)</div>
+</div>
+<div class="flex items-center justify-end space-x-3 pt-2 border-t border-slate-700">
+<button class="px-4 py-1.5 rounded text-xs text-gray-300 hover:bg-slate-700 transition" onclick="closeExportModal()">
+          Close
+        </button>
+<button class="px-4 py-1.5 rounded text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-300 transition shadow" onclick="triggerCodeDownload()">
+          Download Source .HTML
+        </button>
+</div>
+</div>
+</div>
+<!-- END: Export / Download Modal -->
+<!-- BEGIN: JavaScript Logic -->
+<script data-purpose="screen-navigation">
+    // Current Active Token and Player details
+    let selectedTokenName = 'The Dog';
+    let selectedTokenEmoji = '🐶';
+
+    // Switch between screens
+    function switchScreen(screenId) {
+      const screens = ['screen-main', 'screen-invite', 'screen-character', 'screen-lobby'];
+      screens.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          if (id === screenId) {
+            el.classList.remove('hidden');
+            el.classList.add('flex');
+          } else {
+            el.classList.add('hidden');
+            el.classList.remove('flex');
+          }
+        }
+      });
+
+      // Update Nav Buttons
+      const tabMap = {
+        'screen-main': 'btn-tab-main',
+        'screen-invite': 'btn-tab-invite',
+        'screen-character': 'btn-tab-character',
+        'screen-lobby': 'btn-tab-lobby'
+      };
+
+      Object.keys(tabMap).forEach(key => {
+        const btn = document.getElementById(tabMap[key]);
+        if (btn) {
+          if (key === screenId) {
+            btn.className = "px-2.5 py-1 rounded bg-amber-900/60 text-amber-200 border border-amber-700/60 font-medium transition";
+          } else {
+            btn.className = "px-2.5 py-1 rounded bg-[#1a2533] text-gray-300 border border-[#2a3c52] hover:bg-[#25364b] transition";
+          }
+        }
+      });
+    }
+
+    // Select Token function
+    function selectToken(containerEl, tokenName, colorHex) {
+      // Clear previous selected tokens
+      document.querySelectorAll('.token-wood').forEach(el => {
+        el.classList.remove('selected');
+      });
+
+      // Highlight target
+      const tokenCircle = containerEl.querySelector('.token-wood');
+      if (tokenCircle) {
+        tokenCircle.classList.add('selected');
+        selectedTokenEmoji = tokenCircle.textContent.trim();
+      }
+
+      selectedTokenName = tokenName;
+      const statusLabel = document.getElementById('selection-status-label');
+      if (statusLabel) {
+        statusLabel.innerHTML = `Selected: <strong class="not-italic text-[#462e17]">${tokenName}</strong>`;
+      }
+    }
+
+    // Confirm and Join Lobby
+    function confirmAndJoinLobby() {
+      const nameInput = document.getElementById('player-name-input');
+      const hostName = nameInput && nameInput.value.trim() !== '' ? nameInput.value.trim() : 'Player';
+      
+      const hostNameDisplay = document.getElementById('host-player-name');
+      if (hostNameDisplay) {
+        hostNameDisplay.textContent = hostName;
+      }
+
+      const hostTokenBadge = document.getElementById('host-token-badge');
+      if (hostTokenBadge) {
+        hostTokenBadge.textContent = selectedTokenEmoji;
+      }
+
+      switchScreen('screen-lobby');
+    }
+
+    // Cash Slider Input
+    function updateCash(value) {
+      const display = document.getElementById('cash-value-display');
+      if (display) {
+        const formatted = Number(value).toLocaleString();
+        display.innerHTML = `$${formatted} <span class="text-[10px] font-normal text-amber-400">USD</span>`;
+      }
+    }
+
+    // Custom Toggle Switch Handler
+    function toggleSwitch(buttonEl) {
+      const currentState = buttonEl.getAttribute('data-state');
+      const knob = buttonEl.querySelector('span');
+      if (currentState === 'on') {
+        buttonEl.setAttribute('data-state', 'off');
+        buttonEl.classList.remove('bg-[#492e1b]');
+        buttonEl.classList.add('bg-gray-600');
+        knob.classList.remove('translate-x-6');
+        knob.classList.add('translate-x-0.5');
+      } else {
+        buttonEl.setAttribute('data-state', 'on');
+        buttonEl.classList.add('bg-[#492e1b]');
+        buttonEl.classList.remove('bg-gray-600');
+        knob.classList.add('translate-x-6');
+        knob.classList.remove('translate-x-0.5');
+      }
+    }
+
+    // Start Game prompt action
+    function startGamePrompt() {
+      alert('Match started! Fog of War board generation initialized.');
+    }
+
+    // Export Modal Controls
+    function openExportModal() {
+      document.getElementById('export-modal').classList.remove('hidden');
+      document.getElementById('export-modal').classList.add('flex');
+    }
+
+    function closeExportModal() {
+      document.getElementById('export-modal').classList.add('hidden');
+      document.getElementById('export-modal').classList.remove('flex');
+    }
+
+    // Download HTML source file directly
+    function triggerCodeDownload() {
+      const htmlContent = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([htmlContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'fog-of-war-monopoly-tabletop.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      closeExportModal();
+    }
+  </script>
+<!-- END: JavaScript Logic -->
+
+
+</body></html>

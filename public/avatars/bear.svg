@@ -1,0 +1,19 @@
+<svg viewBox="0 0 96 96"  fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Small Round Ears at Top -->
+                <circle cx="25" cy="22" r="11" fill="#022c22" />
+                <circle cx="25" cy="22" r="6" fill="#6ee7b7" opacity="0.8" />
+                <circle cx="71" cy="22" r="11" fill="#022c22" />
+                <circle cx="71" cy="22" r="6" fill="#6ee7b7" opacity="0.8" />
+
+                <!-- Wide Light Snout Area -->
+                <ellipse cx="48" cy="62" rx="19" ry="14" fill="#a7f3d0" opacity="0.95" />
+
+                <!-- Sleepy Curved Eyes -->
+                <path d="M28 44 Q35 49 42 44" stroke="#022c22" stroke-width="3" stroke-linecap="round" fill="none" />
+                <path d="M54 44 Q61 49 68 44" stroke="#022c22" stroke-width="3" stroke-linecap="round" fill="none" />
+
+                <!-- Wide Snout Nose & Smile -->
+                <ellipse cx="48" cy="58" rx="6.5" ry="4.5" fill="#022c22" />
+                <path d="M48 62.5 L48 67" stroke="#022c22" stroke-width="2" stroke-linecap="round" />
+                <path d="M42 66 Q48 70 54 66" stroke="#022c22" stroke-width="2" stroke-linecap="round" fill="none" />
+              </svg>

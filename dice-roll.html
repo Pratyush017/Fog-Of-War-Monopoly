@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dice Roller</title>
+<style>
+  :root{
+    --bg: #12111c;
+    --bg2: #191828;
+    --die: #f5f3ef;
+    --die-shade: #d9d5cc;
+    --pip: #2a2830;
+    --accent: #7c5cff;
+    --accent-dark: #5f3fe0;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    height: 100%;
+    margin: 0;
+    background: radial-gradient(ellipse at 50% 20%, var(--bg2), var(--bg) 70%);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    overflow: hidden;
+  }
+
+  .stage{
+    position: relative;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 56px;
+  }
+
+  .scene-row{
+    display: flex;
+    gap: 90px;
+    perspective: 1000px;
+  }
+
+  .scene{
+    width: 120px;
+    height: 120px;
+    perspective: 1000px;
+  }
+
+  .cube{
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transform-style: preserve-3d;
+    transform: rotateX(-28deg) rotateY(35deg);
+    transition: transform 1.1s cubic-bezier(.2,.8,.3,1.15);
+  }
+
+  .cube.rolling{
+    transition: transform 1.1s cubic-bezier(.35,.05,.25,1);
+  }
+
+  .face{
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    background: linear-gradient(155deg, var(--die), var(--die-shade));
+    border-radius: 18px;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    padding: 20px;
+  }
+
+  .pip{
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #4a4854, var(--pip) 70%);
+    justify-self: center;
+    align-self: center;
+    opacity: 0;
+  }
+
+  /* face positions in the 3x3 grid for each pip layout */
+  .p-c   { grid-area: 2 / 2; }
+  .p-tl  { grid-area: 1 / 1; }
+  .p-tr  { grid-area: 1 / 3; }
+  .p-bl  { grid-area: 3 / 1; }
+  .p-br  { grid-area: 3 / 3; }
+  .p-ml  { grid-area: 2 / 1; }
+  .p-mr  { grid-area: 2 / 3; }
+
+  .face .pip.on{ opacity: 1; }
+
+  .f1{ transform: rotateY(0deg) translateZ(60px); }
+  .f6{ transform: rotateY(180deg) translateZ(60px); }
+  .f2{ transform: rotateY(-90deg) translateZ(60px); }
+  .f5{ transform: rotateY(90deg) translateZ(60px); }
+  .f3{ transform: rotateX(90deg) translateZ(60px); }
+  .f4{ transform: rotateX(-90deg) translateZ(60px); }
+
+  .shadow{
+    position: absolute;
+    bottom: -34px;
+    left: 50%;
+    width: 100px;
+    height: 22px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.45), transparent 70%);
+    transform: translateX(-50%);
+    filter: blur(2px);
+    transition: opacity .3s;
+  }
+
+  button.roll{
+    background: linear-gradient(180deg, var(--accent), var(--accent-dark));
+    color: white;
+    border: none;
+    padding: 16px 48px;
+    border-radius: 999px;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    cursor: pointer;
+    box-shadow: 0 8px 24px rgba(124, 92, 255, 0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    transition: transform .15s ease, box-shadow .15s ease;
+  }
+  button.roll:hover{ transform: translateY(-2px); box-shadow: 0 12px 28px rgba(124, 92, 255, 0.45); }
+  button.roll:active{ transform: translateY(0px) scale(0.97); }
+
+  .total{
+    color: #b8b4c8;
+    font-size: 14px;
+    letter-spacing: 0.3px;
+    min-height: 18px;
+  }
+  .total span{ color: #efeaff; font-weight: 700; font-size: 15px; }
+</style>
+</head>
+<body>
+
+<div class="stage">
+  <div class="scene-row">
+    <div class="scene">
+      <div class="cube" id="cube1">
+        <div class="face f1">
+          <span></span><span></span><span></span>
+          <span></span><span class="pip on p-c"></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+        <div class="face f2">
+          <span class="pip on p-tl"></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f3">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span></span><span class="pip on p-c"></span><span></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f4">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span class="pip on p-ml"></span><span></span><span class="pip on p-mr"></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f5">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span></span><span></span><span></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f6">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span class="pip on p-ml"></span><span></span><span class="pip on p-mr"></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+      </div>
+      <div class="shadow" id="shadow1"></div>
+    </div>
+
+    <div class="scene">
+      <div class="cube" id="cube2">
+        <div class="face f1">
+          <span></span><span></span><span></span>
+          <span></span><span class="pip on p-c"></span><span></span>
+          <span></span><span></span><span></span>
+        </div>
+        <div class="face f2">
+          <span class="pip on p-tl"></span><span></span><span></span>
+          <span></span><span></span><span></span>
+          <span></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f3">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span></span><span class="pip on p-c"></span><span></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f4">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span class="pip on p-ml"></span><span></span><span class="pip on p-mr"></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f5">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span></span><span></span><span></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+        <div class="face f6">
+          <span class="pip on p-tl"></span><span></span><span class="pip on p-tr"></span>
+          <span class="pip on p-ml"></span><span></span><span class="pip on p-mr"></span>
+          <span class="pip on p-bl"></span><span></span><span class="pip on p-br"></span>
+        </div>
+      </div>
+      <div class="shadow" id="shadow2"></div>
+    </div>
+  </div>
+
+  <button class="roll" id="rollBtn">Roll the dice</button>
+  <div class="total" id="total">&nbsp;</div>
+</div>
+
+<script>
+  // rotations (rotateX, rotateY) needed so each face value ends up facing the camera
+  const orientations = {
+    1: { x: 0,    y: 0   },
+    6: { x: 0,    y: 180 },
+    2: { x: 0,    y: 90  },
+    5: { x: 0,    y: -90 },
+    3: { x: -90,  y: 0   },
+    4: { x: 90,   y: 0   }
+  };
+
+  function randFace(){ return 1 + Math.floor(Math.random() * 6); }
+
+  function rollDie(cubeEl, shadowEl, extraSpinX, extraSpinY){
+    const face = randFace();
+    const o = orientations[face];
+    const spinsX = 360 * (2 + Math.floor(Math.random()*2)) + extraSpinX;
+    const spinsY = 360 * (2 + Math.floor(Math.random()*2)) + extraSpinY;
+
+    cubeEl.classList.add('rolling');
+    cubeEl.style.transform =
+      `rotateX(${-28 + spinsX + o.x}deg) rotateY(${35 + spinsY + o.y}deg)`;
+
+    shadowEl.style.opacity = '0.4';
+    setTimeout(() => { shadowEl.style.opacity = '1'; }, 550);
+
+    return face;
+  }
+
+  const cube1 = document.getElementById('cube1');
+  const cube2 = document.getElementById('cube2');
+  const shadow1 = document.getElementById('shadow1');
+  const shadow2 = document.getElementById('shadow2');
+  const total = document.getElementById('total');
+  const btn = document.getElementById('rollBtn');
+
+  let rolling = false;
+
+  btn.addEventListener('click', () => {
+    if (rolling) return;
+    rolling = true;
+    btn.disabled = true;
+    total.textContent = '\u00A0';
+
+    const f1 = rollDie(cube1, shadow1, 40, -25);
+    const f2 = rollDie(cube2, shadow2, -30, 50);
+
+    setTimeout(() => {
+      total.innerHTML = `${f1} + ${f2} = <span>${f1 + f2}</span>`;
+      rolling = false;
+      btn.disabled = false;
+    }, 1150);
+  });
+
+  // initial roll on load
+  window.addEventListener('load', () => setTimeout(() => btn.click(), 300));
+</script>
+
+</body>
+</html>

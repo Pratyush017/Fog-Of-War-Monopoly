@@ -1,0 +1,19 @@
+<svg viewBox="0 0 96 96"  fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Tuft Ears at Top Corners -->
+                <polygon points="18,22 28,34 16,36" fill="#1e1b4b" />
+                <polygon points="78,22 80,36 68,34" fill="#1e1b4b" />
+
+                <!-- Two Massive Round Owl Eyes Glasses / Patch -->
+                <circle cx="34" cy="50" r="17" fill="#ffffff" />
+                <circle cx="34" cy="50" r="16.5" stroke="#1e1b4b" stroke-width="2.5" fill="#ffffff" />
+                <circle cx="34" cy="50" r="9" fill="#1e1b4b" />
+                <circle cx="32" cy="47" r="3.5" fill="#ffffff" />
+
+                <circle cx="62" cy="50" r="17" fill="#ffffff" />
+                <circle cx="62" cy="50" r="16.5" stroke="#1e1b4b" stroke-width="2.5" fill="#ffffff" />
+                <circle cx="62" cy="50" r="9" fill="#1e1b4b" />
+                <circle cx="60" cy="47" r="3.5" fill="#ffffff" />
+
+                <!-- Tiny Diamond Beak -->
+                <polygon points="48,56 43,62 48,69 53,62" fill="#fbbf24" stroke="#1e1b4b" stroke-width="1.5" />
+              </svg>

@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player Avatar Selection Modal</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+    .mono {
+      font-family: 'JetBrains+Mono', monospace;
+    }
+    @keyframes pulseGlow {
+      0%, 100% { opacity: 0.35; transform: scale(1); }
+      50% { opacity: 0.65; transform: scale(1.08); }
+    }
+    .animate-pulse-glow {
+      animation: pulseGlow 3s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-zinc-950 text-white min-h-screen flex items-center justify-center p-4 sm:p-8 relative overflow-hidden select-none">
+
+  <!-- Ambient Tactical Backdrop Glow -->
+  <div id="ambient-glow" class="absolute w-[600px] h-[600px] rounded-full blur-[140px] opacity-25 pointer-events-none transition-all duration-700 -top-20 -left-20 bg-cyan-500"></div>
+  <div id="ambient-glow-secondary" class="absolute w-[500px] h-[500px] rounded-full blur-[130px] opacity-20 pointer-events-none transition-all duration-700 -bottom-20 -right-20 bg-purple-500"></div>
+
+  <!-- Background Grid Pattern -->
+  <div class="absolute inset-0 bg-[radial-gradient(#27272a_1px,transparent_1px)] [background-size:24px_24px] opacity-40 pointer-events-none"></div>
+
+  <!-- Main Container / Modal Card -->
+  <div class="relative w-full max-w-xl mx-auto z-10">
+    
+    <!-- Top Metadata Badge -->
+    <div class="flex items-center justify-between px-3 mb-4 text-xs mono text-zinc-400">
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span>LOBBY // ROOM: <strong class="text-zinc-200">YLZ6J</strong></span>
+      </div>
+      <div class="bg-zinc-900/80 border border-zinc-800 px-2.5 py-1 rounded-full text-zinc-300">
+        4/6 Players Joined
+      </div>
+    </div>
+
+    <!-- Centered Card -->
+    <div class="rounded-3xl p-8 sm:p-10 bg-white/[0.04] backdrop-blur-xl border border-white/10 shadow-[0_25px_60px_-15px_rgba(0,0,0,0.9)] relative overflow-hidden">
+      
+      <!-- Subtle top glass reflection highlight -->
+      <div class="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+
+      <!-- Header Section -->
+      <div class="text-center mb-9">
+        <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[11px] font-medium tracking-wider uppercase text-zinc-300 mb-3.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+          Player Appearance
+        </div>
+        <h1 class="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-2">
+          Choose your character:
+        </h1>
+        <p class="text-sm text-zinc-400 font-normal">
+          Pick a minimalist animal companion to represent you on the board.
+        </p>
+      </div>
+
+      <!-- The 2x3 Grid of 6 Animal Avatars -->
+      <div class="grid grid-cols-3 gap-y-7 gap-x-4 sm:gap-x-6 justify-items-center mb-9">
+
+        <!-- 1. The Cat (Cyan) -->
+        <button onclick="selectAvatar('cat')" id="card-cat" class="group flex flex-col items-center focus:outline-none transition-all duration-300">
+          <div class="relative flex items-center justify-center">
+            <!-- Glow Anchor -->
+            <div id="glow-cat" class="absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 bg-cyan-400"></div>
+            
+            <!-- Avatar Circle -->
+            <div id="circle-cat" class="w-24 h-24 rounded-full relative flex items-center justify-center bg-cyan-500 shadow-md transition-all duration-300 cursor-pointer overflow-hidden border-4 border-transparent">
+              <!-- Specular Gloss -->
+              <div class="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/20 pointer-events-none"></div>
+              
+              <!-- SVG: The Cat (Pointy ears, two big wide eyes, small triangle nose, whiskers) -->
+              <svg viewBox="0 0 96 96" class="w-full h-full p-2.5 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Pointy Ears -->
+                <polygon points="22,18 36,36 18,38" fill="#083344" />
+                <polygon points="25,23 34,35 22,36" fill="#67e8f9" />
+                <polygon points="74,18 78,38 60,36" fill="#083344" />
+                <polygon points="71,23 74,36 62,35" fill="#67e8f9" />
+                
+                <!-- Big Wide Eyes -->
+                <circle cx="33" cy="46" r="6" fill="#083344" />
+                <circle cx="31.5" cy="44" r="2" fill="#ffffff" />
+                <circle cx="63" cy="46" r="6" fill="#083344" />
+                <circle cx="61.5" cy="44" r="2" fill="#ffffff" />
+
+                <!-- Small Triangle Nose -->
+                <polygon points="48,53 44,49 52,49" fill="#083344" />
+                
+                <!-- Gentle Smile Mouth -->
+                <path d="M44 56 Q48 59 52 56" stroke="#083344" stroke-width="2" stroke-linecap="round" fill="none" />
+
+                <!-- Whiskers -->
+                <line x1="16" y1="48" x2="27" y2="50" stroke="#083344" stroke-width="2" stroke-linecap="round" />
+                <line x1="15" y1="56" x2="27" y2="54" stroke="#083344" stroke-width="2" stroke-linecap="round" />
+                <line x1="80" y1="48" x2="69" y2="50" stroke="#083344" stroke-width="2" stroke-linecap="round" />
+                <line x1="81" y1="56" x2="69" y2="54" stroke="#083344" stroke-width="2" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+          <span id="label-cat" class="mt-2.5 text-xs font-semibold tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">The Cat</span>
+          <span class="text-[10px] text-zinc-400/70 mono">Neon Cyan</span>
+        </button>
+
+        <!-- 2. The Fox (Crimson / Rose) -->
+        <button onclick="selectAvatar('fox')" id="card-fox" class="group flex flex-col items-center focus:outline-none transition-all duration-300">
+          <div class="relative flex items-center justify-center">
+            <!-- Glow Anchor -->
+            <div id="glow-fox" class="absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 bg-rose-500"></div>
+            
+            <!-- Avatar Circle -->
+            <div id="circle-fox" class="w-24 h-24 rounded-full relative flex items-center justify-center bg-rose-500 shadow-md transition-all duration-300 cursor-pointer overflow-hidden border-4 border-transparent">
+              <div class="absolute inset-0 bg-gradient-to-b from-white/25 via-transparent to-black/25 pointer-events-none"></div>
+
+              <!-- SVG: The Fox (Sharp tall ears, angled eyes, prominent snout) -->
+              <svg viewBox="0 0 96 96" class="w-full h-full p-2 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Sharp Tall Ears -->
+                <polygon points="20,12 36,36 14,34" fill="#4c0519" />
+                <polygon points="23,17 33,33 19,32" fill="#ffffff" />
+                <polygon points="76,12 82,34 60,36" fill="#4c0519" />
+                <polygon points="73,17 77,32 63,33" fill="#ffffff" />
+
+                <!-- White Snout / Cheeks Area -->
+                <path d="M22 56 Q48 76 74 56 Q48 84 22 56 Z" fill="#ffffff" opacity="0.95" />
+
+                <!-- Angled Sleek Eyes -->
+                <ellipse cx="34" cy="46" rx="5" ry="3.5" transform="rotate(-15 34 46)" fill="#4c0519" />
+                <circle cx="34.5" cy="45" r="1.5" fill="#ffffff" />
+                <ellipse cx="62" cy="46" rx="5" ry="3.5" transform="rotate(15 62 46)" fill="#4c0519" />
+                <circle cx="61.5" cy="45" r="1.5" fill="#ffffff" />
+
+                <!-- Prominent Dark Nose at Tip of Snout -->
+                <polygon points="48,66 43,60 53,60" fill="#4c0519" />
+              </svg>
+            </div>
+          </div>
+          <span id="label-fox" class="mt-2.5 text-xs font-semibold tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">The Fox</span>
+          <span class="text-[10px] text-zinc-400/70 mono">Crimson</span>
+        </button>
+
+        <!-- 3. The Dog (Amber) -->
+        <button onclick="selectAvatar('dog')" id="card-dog" class="group flex flex-col items-center focus:outline-none transition-all duration-300">
+          <div class="relative flex items-center justify-center">
+            <!-- Glow Anchor -->
+            <div id="glow-dog" class="absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 bg-amber-400"></div>
+            
+            <!-- Avatar Circle -->
+            <div id="circle-dog" class="w-24 h-24 rounded-full relative flex items-center justify-center bg-amber-500 shadow-md transition-all duration-300 cursor-pointer overflow-hidden border-4 border-transparent">
+              <div class="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/20 pointer-events-none"></div>
+
+              <!-- SVG: The Dog (Floppy ears dropping down the sides, happy eyes, big round nose) -->
+              <svg viewBox="0 0 96 96" class="w-full h-full p-2 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Floppy Ears Dropping Down Sides -->
+                <path d="M12 28 C8 44, 10 62, 22 64 C26 56, 24 40, 20 28 Z" fill="#451a03" />
+                <path d="M84 28 C88 44, 86 62, 74 64 C70 56, 72 40, 76 28 Z" fill="#451a03" />
+
+                <!-- Happy Arched Eyes -->
+                <path d="M30 46 C32 40, 40 40, 42 46" stroke="#451a03" stroke-width="3" stroke-linecap="round" fill="none" />
+                <path d="M54 46 C56 40, 64 40, 66 46" stroke="#451a03" stroke-width="3" stroke-linecap="round" fill="none" />
+
+                <!-- Big Round Nose -->
+                <ellipse cx="48" cy="55" rx="7" ry="5.5" fill="#451a03" />
+                <ellipse cx="46" cy="53" rx="2" ry="1.2" fill="#ffffff" opacity="0.6" />
+
+                <!-- Happy Dog Tongue / Mouth -->
+                <path d="M48 60.5 L48 65" stroke="#451a03" stroke-width="2" stroke-linecap="round" />
+                <path d="M42 64 Q48 70 54 64" stroke="#451a03" stroke-width="2" stroke-linecap="round" fill="none" />
+                <path d="M45 66 Q48 73 51 66 Z" fill="#f43f5e" />
+              </svg>
+            </div>
+          </div>
+          <span id="label-dog" class="mt-2.5 text-xs font-semibold tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">The Dog</span>
+          <span class="text-[10px] text-zinc-400/70 mono">Amber</span>
+        </button>
+
+        <!-- 4. The Bear (Emerald) -->
+        <button onclick="selectAvatar('bear')" id="card-bear" class="group flex flex-col items-center focus:outline-none transition-all duration-300">
+          <div class="relative flex items-center justify-center">
+            <!-- Glow Anchor -->
+            <div id="glow-bear" class="absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 bg-emerald-400"></div>
+            
+            <!-- Avatar Circle -->
+            <div id="circle-bear" class="w-24 h-24 rounded-full relative flex items-center justify-center bg-emerald-500 shadow-md transition-all duration-300 cursor-pointer overflow-hidden border-4 border-transparent">
+              <div class="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/20 pointer-events-none"></div>
+
+              <!-- SVG: The Bear (Small round ears at top, sleepy eyes, wide snout) -->
+              <svg viewBox="0 0 96 96" class="w-full h-full p-2 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Small Round Ears at Top -->
+                <circle cx="25" cy="22" r="11" fill="#022c22" />
+                <circle cx="25" cy="22" r="6" fill="#6ee7b7" opacity="0.8" />
+                <circle cx="71" cy="22" r="11" fill="#022c22" />
+                <circle cx="71" cy="22" r="6" fill="#6ee7b7" opacity="0.8" />
+
+                <!-- Wide Light Snout Area -->
+                <ellipse cx="48" cy="62" rx="19" ry="14" fill="#a7f3d0" opacity="0.95" />
+
+                <!-- Sleepy Curved Eyes -->
+                <path d="M28 44 Q35 49 42 44" stroke="#022c22" stroke-width="3" stroke-linecap="round" fill="none" />
+                <path d="M54 44 Q61 49 68 44" stroke="#022c22" stroke-width="3" stroke-linecap="round" fill="none" />
+
+                <!-- Wide Snout Nose & Smile -->
+                <ellipse cx="48" cy="58" rx="6.5" ry="4.5" fill="#022c22" />
+                <path d="M48 62.5 L48 67" stroke="#022c22" stroke-width="2" stroke-linecap="round" />
+                <path d="M42 66 Q48 70 54 66" stroke="#022c22" stroke-width="2" stroke-linecap="round" fill="none" />
+              </svg>
+            </div>
+          </div>
+          <span id="label-bear" class="mt-2.5 text-xs font-semibold tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">The Bear</span>
+          <span class="text-[10px] text-zinc-400/70 mono">Emerald</span>
+        </button>
+
+        <!-- 5. The Bunny (Amethyst / Purple) -->
+        <button onclick="selectAvatar('bunny')" id="card-bunny" class="group flex flex-col items-center focus:outline-none transition-all duration-300">
+          <div class="relative flex items-center justify-center">
+            <!-- Glow Anchor -->
+            <div id="glow-bunny" class="absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 bg-purple-400"></div>
+            
+            <!-- Avatar Circle -->
+            <div id="circle-bunny" class="w-24 h-24 rounded-full relative flex items-center justify-center bg-purple-500 shadow-md transition-all duration-300 cursor-pointer overflow-visible border-4 border-transparent">
+              <div class="absolute inset-0 rounded-full bg-gradient-to-b from-white/30 via-transparent to-black/20 pointer-events-none"></div>
+
+              <!-- SVG: The Bunny (Long tall ears extending slightly past circle, tiny dot eyes, 'x' mouth) -->
+              <svg viewBox="0 0 96 96" class="w-full h-full p-1 relative z-10 overflow-visible" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Long Tall Bunny Ears extending past top boundary -->
+                <!-- Left Ear -->
+                <g>
+                  <path d="M31 32 C27 12, 30 -6, 36 -6 C42 -6, 42 12, 37 32 Z" fill="#3b0764" />
+                  <path d="M33 26 C30 10, 32 0, 36 0 C39 0, 39 10, 36 26 Z" fill="#f0abfc" />
+                </g>
+                <!-- Right Ear -->
+                <g>
+                  <path d="M59 32 C54 12, 54 -6, 60 -6 C66 -6, 69 12, 65 32 Z" fill="#3b0764" />
+                  <path d="M60 26 C57 10, 57 0, 60 0 C63 0, 65 10, 63 26 Z" fill="#f0abfc" />
+                </g>
+
+                <!-- Tiny Dot Eyes -->
+                <circle cx="34" cy="50" r="3.5" fill="#3b0764" />
+                <circle cx="33" cy="49" r="1" fill="#ffffff" />
+                <circle cx="62" cy="50" r="3.5" fill="#3b0764" />
+                <circle cx="61" cy="49" r="1" fill="#ffffff" />
+
+                <!-- Little Cute 'x' Mouth -->
+                <path d="M45 61 L51 67" stroke="#3b0764" stroke-width="2.2" stroke-linecap="round" />
+                <path d="M51 61 L45 67" stroke="#3b0764" stroke-width="2.2" stroke-linecap="round" />
+
+                <!-- Whiskers -->
+                <line x1="20" y1="56" x2="28" y2="56" stroke="#3b0764" stroke-width="1.5" stroke-linecap="round" />
+                <line x1="68" y1="56" x2="76" y2="56" stroke="#3b0764" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+            </div>
+          </div>
+          <span id="label-bunny" class="mt-2.5 text-xs font-semibold tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">The Bunny</span>
+          <span class="text-[10px] text-zinc-400/70 mono">Amethyst</span>
+        </button>
+
+        <!-- 6. The Owl (Indigo) -->
+        <button onclick="selectAvatar('owl')" id="card-owl" class="group flex flex-col items-center focus:outline-none transition-all duration-300">
+          <div class="relative flex items-center justify-center">
+            <!-- Glow Anchor -->
+            <div id="glow-owl" class="absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 bg-indigo-400"></div>
+            
+            <!-- Avatar Circle -->
+            <div id="circle-owl" class="w-24 h-24 rounded-full relative flex items-center justify-center bg-indigo-500 shadow-md transition-all duration-300 cursor-pointer overflow-hidden border-4 border-transparent">
+              <div class="absolute inset-0 bg-gradient-to-b from-white/30 via-transparent to-black/20 pointer-events-none"></div>
+
+              <!-- SVG: The Owl (Two massive round eyes taking up most of face, tiny diamond beak) -->
+              <svg viewBox="0 0 96 96" class="w-full h-full p-2 relative z-10" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Tuft Ears at Top Corners -->
+                <polygon points="18,22 28,34 16,36" fill="#1e1b4b" />
+                <polygon points="78,22 80,36 68,34" fill="#1e1b4b" />
+
+                <!-- Two Massive Round Owl Eyes Glasses / Patch -->
+                <circle cx="34" cy="50" r="17" fill="#ffffff" />
+                <circle cx="34" cy="50" r="16.5" stroke="#1e1b4b" stroke-width="2.5" fill="#ffffff" />
+                <circle cx="34" cy="50" r="9" fill="#1e1b4b" />
+                <circle cx="32" cy="47" r="3.5" fill="#ffffff" />
+
+                <circle cx="62" cy="50" r="17" fill="#ffffff" />
+                <circle cx="62" cy="50" r="16.5" stroke="#1e1b4b" stroke-width="2.5" fill="#ffffff" />
+                <circle cx="62" cy="50" r="9" fill="#1e1b4b" />
+                <circle cx="60" cy="47" r="3.5" fill="#ffffff" />
+
+                <!-- Tiny Diamond Beak -->
+                <polygon points="48,56 43,62 48,69 53,62" fill="#fbbf24" stroke="#1e1b4b" stroke-width="1.5" />
+              </svg>
+            </div>
+          </div>
+          <span id="label-owl" class="mt-2.5 text-xs font-semibold tracking-wide text-zinc-400 group-hover:text-zinc-200 transition-colors">The Owl</span>
+          <span class="text-[10px] text-zinc-400/70 mono">Indigo</span>
+        </button>
+
+      </div>
+
+      <!-- Selection Feedback Status Bar -->
+      <div class="h-6 flex items-center justify-center mb-6 text-xs text-zinc-400 mono">
+        <span id="status-text">Selected Character: <strong class="text-cyan-400">The Cat</strong> (Playful)</span>
+      </div>
+
+      <!-- Dynamic Action Button: Confirm & Join -->
+      <div>
+        <button id="btn-confirm" onclick="confirmSelection()" class="w-full py-4 px-6 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-lg flex items-center justify-center gap-2 bg-cyan-500 text-white shadow-cyan-500/40 hover:brightness-110 active:scale-[0.98]">
+          <span id="btn-text">Confirm & Join as The Cat</span>
+          <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" d="M14 5l7 7m0 0l-7 7m7-7H3"/>
+          </svg>
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Bottom Engine / Session Subtext -->
+    <div class="mt-5 text-center text-[11px] mono text-zinc-600 tracking-wider">
+      DIGITAL TABLETOP ENGINE • ZERO LATENCY SYNC • CLIENT v2.4
+    </div>
+
+  </div>
+
+  <!-- Interactive JavaScript State Logic -->
+  <script>
+    const avatarData = {
+      cat: {
+        name: "The Cat",
+        trait: "Clever & Swift",
+        colorClass: "bg-cyan-500",
+        shadowClass: "shadow-cyan-500/50",
+        btnClass: "bg-cyan-500 text-white shadow-cyan-500/40 hover:bg-cyan-400",
+        glowColor: "bg-cyan-400",
+        ambientColor: "#06b6d4",
+        statusColorText: "text-cyan-400"
+      },
+      fox: {
+        name: "The Fox",
+        trait: "Sharp & Cunning",
+        colorClass: "bg-rose-500",
+        shadowClass: "shadow-rose-500/50",
+        btnClass: "bg-rose-600 text-white shadow-rose-600/40 hover:bg-rose-500",
+        glowColor: "bg-rose-500",
+        ambientColor: "#f43f5e",
+        statusColorText: "text-rose-400"
+      },
+      dog: {
+        name: "The Dog",
+        trait: "Loyal & Friendly",
+        colorClass: "bg-amber-500",
+        shadowClass: "shadow-amber-500/50",
+        btnClass: "bg-amber-500 text-stone-950 font-bold shadow-amber-500/40 hover:bg-amber-400",
+        glowColor: "bg-amber-400",
+        ambientColor: "#f59e0b",
+        statusColorText: "text-amber-400"
+      },
+      bear: {
+        name: "The Bear",
+        trait: "Sturdy & Grounded",
+        colorClass: "bg-emerald-500",
+        shadowClass: "shadow-emerald-500/50",
+        btnClass: "bg-emerald-500 text-white shadow-emerald-500/40 hover:bg-emerald-400",
+        glowColor: "bg-emerald-400",
+        ambientColor: "#10b981",
+        statusColorText: "text-emerald-400"
+      },
+      bunny: {
+        name: "The Bunny",
+        trait: "Quick & Agile",
+        colorClass: "bg-purple-500",
+        shadowClass: "shadow-purple-500/50",
+        btnClass: "bg-purple-600 text-white shadow-purple-600/40 hover:bg-purple-500",
+        glowColor: "bg-purple-400",
+        ambientColor: "#a855f7",
+        statusColorText: "text-purple-400"
+      },
+      owl: {
+        name: "The Owl",
+        trait: "Wise & Observant",
+        colorClass: "bg-indigo-500",
+        shadowClass: "shadow-indigo-500/50",
+        btnClass: "bg-indigo-600 text-white shadow-indigo-600/40 hover:bg-indigo-500",
+        glowColor: "bg-indigo-400",
+        ambientColor: "#6366f1",
+        statusColorText: "text-indigo-400"
+      }
+    };
+
+    let selectedAvatar = 'cat';
+    const avatarKeys = ['cat', 'fox', 'dog', 'bear', 'bunny', 'owl'];
+
+    function selectAvatar(key) {
+      selectedAvatar = key;
+      applyState();
+    }
+
+    function applyState() {
+      const current = avatarData[selectedAvatar];
+
+      avatarKeys.forEach(k => {
+        const circle = document.getElementById(`circle-${k}`);
+        const glow = document.getElementById(`glow-${k}`);
+        const label = document.getElementById(`label-${k}`);
+        const card = document.getElementById(`card-${k}`);
+
+        if (k === selectedAvatar) {
+          // Selected Active State
+          // Scale-110, -translate-y-2, border-4 border-white, opacity-100, vibrant glow
+          circle.className = `w-24 h-24 rounded-full relative flex items-center justify-center ${avatarData[k].colorClass} shadow-2xl transition-all duration-300 cursor-pointer overflow-visible border-4 border-white scale-110 -translate-y-2.5 opacity-100`;
+          glow.className = `absolute -inset-1 rounded-full opacity-80 blur-xl transition-all duration-300 ${avatarData[k].glowColor} animate-pulse-glow`;
+          label.className = `mt-3 text-xs font-bold tracking-wide text-white transition-colors`;
+        } else {
+          // Unselected Dormant State
+          // Opacity 70%, scale-95, muted border
+          circle.className = `w-24 h-24 rounded-full relative flex items-center justify-center ${avatarData[k].colorClass} shadow-md transition-all duration-300 cursor-pointer overflow-visible border-4 border-transparent opacity-65 scale-95 hover:opacity-90 hover:scale-100`;
+          glow.className = `absolute -inset-1 rounded-full opacity-0 blur-lg transition-all duration-300 ${avatarData[k].glowColor}`;
+          label.className = `mt-2.5 text-xs font-medium tracking-wide text-zinc-400 transition-colors`;
+        }
+      });
+
+      // Update Dynamic Button
+      const btn = document.getElementById('btn-confirm');
+      const btnText = document.getElementById('btn-text');
+      btn.className = `w-full py-4 px-6 rounded-full font-semibold text-sm tracking-wide transition-all duration-300 shadow-xl flex items-center justify-center gap-2 ${current.btnClass} active:scale-[0.98]`;
+      btnText.textContent = `Confirm & Join as ${current.name}`;
+
+      // Update Status Feedback Text
+      const statusText = document.getElementById('status-text');
+      statusText.innerHTML = `Selected Character: <strong class="${current.statusColorText}">${current.name}</strong> (${current.trait})`;
+
+      // Shift Ambient Background Glow
+      const ambient1 = document.getElementById('ambient-glow');
+      ambient1.style.backgroundColor = current.ambientColor;
+    }
+
+    function confirmSelection() {
+      const current = avatarData[selectedAvatar];
+      const btn = document.getElementById('btn-confirm');
+      const btnText = document.getElementById('btn-text');
+      
+      btnText.textContent = `Joined as ${current.name}! Entering Board...`;
+      btn.classList.add('ring-4', 'ring-white/50');
+      
+      setTimeout(() => {
+        btnText.textContent = `Confirm & Join as ${current.name}`;
+        btn.classList.remove('ring-4', 'ring-white/50');
+      }, 2000);
+    }
+
+    // Initialize initial state on load
+    document.addEventListener('DOMContentLoaded', () => {
+      applyState();
+    });
+  </script>
+</body>
+</html>

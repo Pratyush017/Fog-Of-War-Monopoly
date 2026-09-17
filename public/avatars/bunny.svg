@@ -1,0 +1,27 @@
+<svg viewBox="0 0 96 96"  fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Long Tall Bunny Ears extending past top boundary -->
+                <!-- Left Ear -->
+                <g>
+                  <path d="M31 32 C27 12, 30 -6, 36 -6 C42 -6, 42 12, 37 32 Z" fill="#3b0764" />
+                  <path d="M33 26 C30 10, 32 0, 36 0 C39 0, 39 10, 36 26 Z" fill="#f0abfc" />
+                </g>
+                <!-- Right Ear -->
+                <g>
+                  <path d="M59 32 C54 12, 54 -6, 60 -6 C66 -6, 69 12, 65 32 Z" fill="#3b0764" />
+                  <path d="M60 26 C57 10, 57 0, 60 0 C63 0, 65 10, 63 26 Z" fill="#f0abfc" />
+                </g>
+
+                <!-- Tiny Dot Eyes -->
+                <circle cx="34" cy="50" r="3.5" fill="#3b0764" />
+                <circle cx="33" cy="49" r="1" fill="#ffffff" />
+                <circle cx="62" cy="50" r="3.5" fill="#3b0764" />
+                <circle cx="61" cy="49" r="1" fill="#ffffff" />
+
+                <!-- Little Cute 'x' Mouth -->
+                <path d="M45 61 L51 67" stroke="#3b0764" stroke-width="2.2" stroke-linecap="round" />
+                <path d="M51 61 L45 67" stroke="#3b0764" stroke-width="2.2" stroke-linecap="round" />
+
+                <!-- Whiskers -->
+                <line x1="20" y1="56" x2="28" y2="56" stroke="#3b0764" stroke-width="1.5" stroke-linecap="round" />
+                <line x1="68" y1="56" x2="76" y2="56" stroke="#3b0764" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
