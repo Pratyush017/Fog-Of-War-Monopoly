@@ -407,10 +407,10 @@ export default function LobbyPage({ params }: { params: Promise<{ inviteCode: st
           {isHost ? (
             <button 
               onClick={handleStart}
-              disabled={starting}
+              disabled={starting || players.length < 2}
               className="btn-terracotta w-full py-3.5 px-4 rounded-md text-white font-bold tracking-widest text-base uppercase transition disabled:opacity-50"
             >
-              {starting ? "Starting..." : "Start Game"}
+              {starting ? "Starting..." : players.length < 2 ? "Need 2+ Players" : "Start Game"}
             </button>
           ) : (
             <div className="w-full py-3.5 px-4 rounded-md text-center text-[#d3be9c] bg-[#3a2211] border border-[#523219] font-bold tracking-widest text-sm uppercase">

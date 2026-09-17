@@ -188,6 +188,14 @@ interface GameStore {
   activeTradePartnerId: string | null;
   setActiveTradePartnerId: (partnerId: string | null) => void;
 
+  // Settings
+  hasSeenTutorial: boolean;
+  setHasSeenTutorial: (val: boolean) => void;
+
+  // Auto-roll signal
+  autoRollRequested: boolean;
+  setAutoRollRequested: (val: boolean) => void;
+
   // Reset entire store
   resetStore: () => void;
 }
@@ -356,6 +364,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   activeTradePartnerId: null,
   setActiveTradePartnerId: (partnerId) => set({ activeTradePartnerId: partnerId }),
 
+  hasSeenTutorial: false,
+  setHasSeenTutorial: (val) => set({ hasSeenTutorial: val }),
+
+  autoRollRequested: false,
+  setAutoRollRequested: (val) => set({ autoRollRequested: val }),
+
   // Reset entire store
   resetStore: () => set({
     myPlayerId: null,
@@ -370,7 +384,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       currentBid: 0,
       currentBidderId: null,
       currentBidderName: null,
-      timeLeft: 6,
+      timeLeft: 15,
     },
     eventLog: [],
     shufflingTiles: [],
@@ -381,5 +395,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
     selectedTileIndex: null,
     incomingTradeOffer: null,
     activeTradePartnerId: null,
+    autoRollRequested: false,
   }),
 }));

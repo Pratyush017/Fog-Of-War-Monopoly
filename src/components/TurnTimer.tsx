@@ -14,8 +14,19 @@ export default function TurnTimer() {
   const handleTimeUp = useCallback(async () => {
     if (!match || !myPlayerId) return;
     
-    // Only fire end-turn if it's NOT our turn (to seize it) 
-    // OR if we don't have an active end-turn request in flight
+    if (isMyTurn) {
+      const store = useGameStore.getState();
+      // If it's our turn and we haven't rolled, trigger auto-roll
+      if (!match.hasRolled) {
+        store.setAutoRollRequested(true);
+        return;
+      }
+      
+      // If we have rolled but have a pending action, it should auto-pass/resolve
+      // (This will be handled in DiceRoller/ActionPanel via another timer)
+    }
+
+    // Fire end-turn to seize it (if not our turn) or force end (if it is our turn and we've rolled)
     try {
       await fetch("/api/game/end-turn", {
         method: "POST",
@@ -25,7 +36,7 @@ export default function TurnTimer() {
     } catch (error) {
       console.error("Failed to auto-end turn:", error);
     }
-  }, [match, myPlayerId]);
+  }, [match, myPlayerId, isMyTurn]);
 
   useEffect(() => {
     if (!turnEndsAt || match?.status !== "PLAYING") {

@@ -7,6 +7,7 @@ import { useGameSounds } from "@/hooks/useGameSounds";
 import { subscribeToMatch, unsubscribeFromMatch, type GameEvent } from "@/lib/supabase-channels";
 import Board from "@/components/Board";
 import IncomingTradeModal from "@/components/IncomingTradeModal";
+import { AuctionOverlay } from "@/components/ActionPanel";
 
 export default function GamePage({ params }: { params: Promise<{ inviteCode: string }> }) {
   const { inviteCode } = use(params);
@@ -175,9 +176,15 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           fetchGameState(); // Refresh full state
           break;
 
-        case "new-log":
-          addEvent(event.payload);
+        case "new-log": {
+          const isRolling = useGameStore.getState().dice?.rolling;
+          if (isRolling) {
+            setTimeout(() => addEvent(event.payload), 1000);
+          } else {
+            addEvent(event.payload);
+          }
           break;
+        }
 
         case "dice-rolled": {
           if (isOwnAction) {
@@ -333,8 +340,8 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           // Skip for local player — DiceRoller already animated jail entry optimistically
           if (event.payload.playerId !== myPlayerIdRef.current) {
             updatePlayer(event.payload.playerId, { inJail: true, position: 10 });
+            playJail();
           }
-          playJail();
           break;
         }
 
@@ -507,8 +514,9 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
       <div className="flex-1 overflow-hidden min-h-0">
         <Board />
       </div>
-      {/* Trade Incoming Modal (global overlay) */}
+      {/* Global Overlays */}
       <IncomingTradeModal />
+      <AuctionOverlay />
     </div>
   );
 }

@@ -90,15 +90,18 @@ function DiceCube({ value, rolling, spinId, index }: { value: number; rolling: b
 import TurnTimer from "./TurnTimer";
 
 export default function DiceRoller() {
-  const { dice, match, myPlayerId, pendingAction, setDice } = useGameStore();
+  const { dice, match, myPlayerId, pendingAction, setDice, autoRollRequested, setAutoRollRequested } = useGameStore();
   const { playRoll } = useGameSounds();
   const [fetching, setFetching] = useState(false);
   const [spinId, setSpinId] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
 
+  const myPlayer = useGameStore.getState().players.find(p => p.id === myPlayerId);
+  const hasNegativeBalance = (myPlayer?.cash ?? 0) < 0;
+
   const isMyTurn = match?.currentTurnId === myPlayerId;
   const rolling = !!(dice?.rolling) || isRolling;
-  const canRoll = isMyTurn && !rolling && !fetching && !pendingAction && !match?.hasRolled;
+  const canRoll = isMyTurn && !rolling && !fetching && !pendingAction && !match?.hasRolled && !hasNegativeBalance;
 
   const handleRoll = useCallback(async () => {
     if (!canRoll || !match) return;
@@ -178,6 +181,7 @@ export default function DiceRoller() {
         // Step 2: Brief pause so user sees the piece land, then move to Jail
         await new Promise(resolve => setTimeout(resolve, 200));
         store.updatePlayer(myPlayerId, { position: 10, inJail: true });
+        playJail();
       }
       // ── Handle CHANCE / CHEST: show card immediately ──
       else if ((tileType === "CHANCE" || tileType === "CHEST") && myPlayerId) {
@@ -224,8 +228,17 @@ export default function DiceRoller() {
     }
   }, [canRoll, match, myPlayerId, playRoll]);
 
+  useEffect(() => {
+    if (autoRollRequested && canRoll) {
+      handleRoll();
+      setAutoRollRequested(false);
+    } else if (autoRollRequested) {
+      setAutoRollRequested(false);
+    }
+  }, [autoRollRequested, canRoll, handleRoll, setAutoRollRequested]);
+
   const handleEndTurn = useCallback(async () => {
-    if (!match || !myPlayerId || fetching) return;
+    if (!match || !myPlayerId || fetching || hasNegativeBalance) return;
     setFetching(true);
 
     // -- Optimistic UI --
@@ -318,13 +331,24 @@ export default function DiceRoller() {
               {match?.hasRolled && (
                 <button
                   onClick={handleEndTurn}
-                  disabled={fetching || rolling || !!pendingAction}
-                  className="btn-secondary px-6 py-3 bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40 transition-colors"
+                  disabled={fetching || rolling || !!pendingAction || hasNegativeBalance}
+                  className={`btn-secondary px-6 py-3 transition-colors ${
+                    hasNegativeBalance 
+                      ? 'bg-red-900/50 text-red-500/50 border-red-900/50 cursor-not-allowed' 
+                      : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40'
+                  }`}
                 >
                   End Turn
                 </button>
               )}
             </div>
+            
+            {hasNegativeBalance && (
+              <div className="mt-2 bg-red-950/80 border border-red-700 text-red-200 text-xs px-4 py-2 rounded max-w-[280px] text-center shadow-lg animate-pulse">
+                <span className="font-bold">Negative Balance!</span><br/>
+                Mortgage properties, trade, or declare bankruptcy to continue.
+              </div>
+            )}
           </div>
         )}
 

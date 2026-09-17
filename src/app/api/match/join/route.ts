@@ -28,6 +28,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Match is full (max 12 players)" }, { status: 400 });
     }
 
+    // Check for duplicate player names (case-insensitive)
+    const nameTaken = match.players.some(
+      (p) => p.name.toLowerCase() === playerName.trim().toLowerCase()
+    );
+    if (nameTaken) {
+      return NextResponse.json(
+        { error: "A player with that name is already in the lobby. Please choose a different name." },
+        { status: 400 }
+      );
+    }
+
     if (avatar) {
       const isAvatarTaken = match.players.some((p) => p.avatar === avatar);
       if (isAvatarTaken) {

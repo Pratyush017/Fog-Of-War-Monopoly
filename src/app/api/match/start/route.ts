@@ -29,6 +29,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Match already started" }, { status: 400 });
     }
 
+    if (match.players.length < 2) {
+      return NextResponse.json({ error: "Need at least 2 players to start the game" }, { status: 400 });
+    }
+
     console.log("[MATCH START] GameMode:", match.gameMode);
 
 

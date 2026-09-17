@@ -15,21 +15,42 @@ export default function ActionPanel() {
 
   // Auction countdown timer
   useEffect(() => {
-    if (!auction.active || auction.timeLeft <= 0) return;
+    if (!auction.active) return;
 
     const interval = setInterval(() => {
-      setAuction({ timeLeft: auction.timeLeft - 1 });
-
-      if (auction.timeLeft <= 1) {
-        // Auction ended
+      const store = useGameStore.getState();
+      const currentTimer = store.auction.timeLeft;
+      
+      if (currentTimer <= 1) {
         clearInterval(interval);
-        handleAuctionEnd();
+        // We use store state directly here to avoid stale closures if handleAuctionEnd is recreated
+        const currentAuction = store.auction;
+        const currentMatch = store.match;
+        
+        if (!currentAuction.currentBidderId || !currentMatch) {
+          store.resetAuction();
+          return;
+        }
+
+        // Winner buys the tile
+        fetch("/api/game/buy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            matchId: currentMatch.id,
+            playerId: currentAuction.currentBidderId,
+            tileIndex: currentAuction.boardIndex,
+          }),
+        }).catch(err => console.error("Auction finalize failed:", err));
+        
+        store.resetAuction();
+      } else {
+        store.setAuction({ timeLeft: currentTimer - 1 });
       }
     }, 1000);
 
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auction.active, auction.timeLeft]);
+  }, [auction.active]);
 
   const handleBuy = useCallback(async () => {
     if (!match || !myPlayerId || !pendingAction || pendingAction.type !== "buy-prompt") return;
@@ -282,6 +303,37 @@ export default function ActionPanel() {
     resetAuction();
   }, [auction, match, resetAuction]);
 
+  // ── Auto-Pass Countdown ──
+  const [promptTimeLeft, setPromptTimeLeft] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (pendingAction?.type === "buy-prompt" && isMyTurn && match?.turnEndsAt) {
+      const turnEndsAtTime = new Date(match.turnEndsAt).getTime();
+      
+      // If the global turn timer has already expired (or is about to expire within 10s),
+      // we enforce a strict 10s local countdown before auto-passing.
+      if (Date.now() + 10000 >= turnEndsAtTime) {
+        setPromptTimeLeft(10);
+      } else {
+        setPromptTimeLeft(null);
+      }
+    } else {
+      setPromptTimeLeft(null);
+    }
+  }, [pendingAction, isMyTurn, match?.turnEndsAt]);
+
+  useEffect(() => {
+    if (promptTimeLeft === null) return;
+    if (promptTimeLeft <= 0) {
+      handlePass();
+      return;
+    }
+    const timer = setTimeout(() => {
+      setPromptTimeLeft(promptTimeLeft - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [promptTimeLeft, handlePass]);
+
   // ── Buy/Pass Prompt ──
   if (pendingAction?.type === "buy-prompt" && isMyTurn) {
     const tile = useGameStore.getState().tiles.find(t => t.boardIndex === pendingAction.boardIndex);
@@ -296,6 +348,11 @@ export default function ActionPanel() {
         <p className="text-xs text-[#58412b] text-center mb-4">
           {isBlind ? "Buy this property sight unseen for" : `Buy ${tile?.property?.name} for`} <span className="text-[#3a7c36] font-mono font-bold px-1 bg-[#d3ebd2]/50 rounded">${propertyPrice}</span>?
         </p>
+        {promptTimeLeft !== null && (
+          <p className="text-[10px] text-red-600 font-bold text-center mb-3 animate-pulse uppercase tracking-wider">
+            Auto-passing in {promptTimeLeft}s
+          </p>
+        )}
         <div className="flex gap-2">
           <button
             onClick={handleBuy}
@@ -345,55 +402,91 @@ export default function ActionPanel() {
     );
   }
 
-  // ── Auction UI ──
-  if (auction.active) {
-    return (
-      <div className="deckled-edges parchment-card shadow-2xl rounded-sm p-4 w-full max-w-xs border border-[#d4ba96] text-[#4a3420] animate-in">
-        <h3 className="text-sm font-bold text-center mb-2 uppercase tracking-widest font-serif border-b border-[#cca97f]/40 pb-2">Auction</h3>
+  return null;
+}
+
+export function AuctionOverlay() {
+  const { auction, match, myPlayerId, setAuction } = useGameStore();
+
+  const handleQuickBid = useCallback(async (increment: number) => {
+    if (!match || !myPlayerId) return;
+    const targetBid = auction.currentBid + increment;
+
+    try {
+      // Optimistically update the UI to ensure high responsiveness
+      setAuction({
+        currentBid: targetBid,
+        currentBidderId: myPlayerId,
+        currentBidderName: "You",
+        timeLeft: 15, // Reset timer to 15s
+      });
+
+      await fetch("/api/game/auction-bid", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId: match.id,
+          playerId: myPlayerId,
+          amount: targetBid,
+        }),
+      });
+    } catch (error) {
+      console.error("Bid failed:", error);
+    }
+  }, [match, myPlayerId, auction.currentBid, setAuction]);
+
+  if (!auction.active) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40" style={{ pointerEvents: "auto" }}>
+      <div className="deckled-edges parchment-card shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-sm p-6 w-full max-w-sm border-2 border-[#d4ba96] text-[#4a3420] animate-in zoom-in-95 pointer-events-auto">
+        <h3 className="text-xl font-bold text-center mb-4 uppercase tracking-widest font-serif border-b border-[#cca97f]/40 pb-3">Live Auction</h3>
 
         {/* Timer bar */}
-        <div className="w-full h-1.5 bg-[#e4ccaa] rounded-full mb-3 overflow-hidden shadow-inner border border-[#d4ba96]">
+        <div className="w-full h-2 bg-[#e4ccaa] rounded-full mb-4 overflow-hidden shadow-inner border border-[#d4ba96]">
           <div
             className="h-full bg-gradient-to-r from-amber-600 to-red-600 transition-all duration-1000"
-            style={{ width: `${(auction.timeLeft / 6) * 100}%` }}
+            style={{ width: `${(auction.timeLeft / 15) * 100}%` }}
           />
         </div>
 
-        <div className="text-center mb-4">
-          <p className="text-[10px] font-bold uppercase tracking-widest text-[#7a5937]">Current Bid</p>
-          <p className="text-xl font-mono font-black text-amber-900 drop-shadow-sm">
+        <div className="text-center mb-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-[#7a5937]">Current Bid</p>
+          <p className="text-4xl font-mono font-black text-amber-900 drop-shadow-sm my-2">
             ${auction.currentBid}
           </p>
-          {auction.currentBidderName && (
-            <p className="text-[10px] text-[#58412b] font-medium mt-1">
+          {auction.currentBidderName ? (
+            <p className="text-sm text-[#58412b] font-medium">
               by <span className="font-bold">{auction.currentBidderName}</span>
+            </p>
+          ) : (
+            <p className="text-sm text-[#58412b] font-medium italic">
+              No bids yet
             </p>
           )}
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             onClick={() => handleQuickBid(2)}
-            className="flex-1 btn-terracotta text-[12px] font-bold uppercase tracking-wider py-2.5 rounded transition-all active:scale-95"
+            className="flex-1 btn-terracotta text-sm font-bold uppercase tracking-wider py-3 rounded transition-all active:scale-95 shadow-md"
           >
             +$2
           </button>
           <button
             onClick={() => handleQuickBid(10)}
-            className="flex-1 btn-terracotta text-[12px] font-bold uppercase tracking-wider py-2.5 rounded transition-all active:scale-95"
+            className="flex-1 btn-terracotta text-sm font-bold uppercase tracking-wider py-3 rounded transition-all active:scale-95 shadow-md"
           >
             +$10
           </button>
           <button
             onClick={() => handleQuickBid(50)}
-            className="flex-1 btn-terracotta text-[12px] font-bold uppercase tracking-wider py-2.5 rounded transition-all active:scale-95"
+            className="flex-1 btn-terracotta text-sm font-bold uppercase tracking-wider py-3 rounded transition-all active:scale-95 shadow-md"
           >
             +$50
           </button>
         </div>
       </div>
-    );
-  }
-
-  return null;
+    </div>
+  );
 }

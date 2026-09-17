@@ -45,6 +45,14 @@ export async function POST(request: Request) {
       });
     }
 
+    // ── Negative balance check ──
+    if (player.cash < 0) {
+      return NextResponse.json(
+        { error: "Cannot roll with negative balance. Mortgage or sell properties to cover debt, or declare bankruptcy." },
+        { status: 400 }
+      );
+    }
+
     // ── Roll dice ──
     const dice = rollDice();
 

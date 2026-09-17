@@ -45,6 +45,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // ── Negative balance check ──
+    if (activePlayer.cash < 0) {
+      return NextResponse.json(
+        { error: "Cannot end turn with negative balance. Mortgage or sell properties to cover debt, or declare bankruptcy." },
+        { status: 400 }
+      );
+    }
+
     // ── Check Loan Maturity Deadline ──
     if (
       activePlayer.loanPrincipal > 0 &&
