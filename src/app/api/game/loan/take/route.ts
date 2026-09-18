@@ -142,8 +142,32 @@ export async function POST(request: Request) {
       "info"
     );
 
+    const serverReceivedTime = Date.now();
+    const playersDelta = [{
+      id: playerId,
+      cash: player.cash + principal,
+      loanType,
+      loanPrincipal: principal,
+      loanInterest,
+      loanDeadlineTurn,
+      isLiquidating: false,
+      debtAmount: Math.max(0, player.debtAmount - principal),
+      creditorId: (player.debtAmount - principal <= 0) ? null : player.creditorId
+    }];
+
+    if (player.debtAmount > 0 && player.creditorId) {
+      const creditor = match.players.find(p => p.id === player.creditorId);
+      if (creditor) {
+        playersDelta.push({
+          id: creditor.id,
+          cash: creditor.cash + Math.min(principal, player.debtAmount)
+        });
+      }
+    }
+
     await serverBroadcast(match.inviteCode, {
       type: "loan-taken",
+      telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
       payload: {
         playerId,
         playerName: player.name,
@@ -153,11 +177,9 @@ export async function POST(request: Request) {
         interest: loanInterest,
         deadlineTurn: loanDeadlineTurn,
       },
-    });
-
-    await serverBroadcast(match.inviteCode, {
-      type: "state-sync",
-      payload: {},
+      delta: {
+        players: playersDelta
+      }
     });
 
     return NextResponse.json({

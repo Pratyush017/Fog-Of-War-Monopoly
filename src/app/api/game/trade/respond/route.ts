@@ -6,6 +6,7 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
+    const serverReceivedTime = Date.now();
     const {
       matchId,
       tradeId,
@@ -211,10 +212,27 @@ export async function POST(request: Request) {
       );
     }
 
+    const tilesDelta = [];
+    for (const tileId of offeredPropertyTileIds) {
+      const t = match.tiles.find(t => t.id === tileId);
+      if (t) tilesDelta.push({ boardIndex: t.boardIndex, ownerId: targetPlayerId });
+    }
+    for (const tileId of requestedPropertyTileIds) {
+      const t = match.tiles.find(t => t.id === tileId);
+      if (t) tilesDelta.push({ boardIndex: t.boardIndex, ownerId: offeringPlayerId });
+    }
+    
+    // We do a naive cash delta. If debt interception occurred, the next state sync will correct it.
+    const playersDelta = [
+      { id: offeringPlayerId, cash: offeringPlayer.cash + (requestedCash - offeredCash) },
+      { id: targetPlayerId, cash: targetPlayer.cash + (offeredCash - requestedCash) }
+    ];
+
     await Promise.all([
       serverBroadcast(match.inviteCode, {
         type: "trade-accepted",
         actionId,
+        telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
         payload: {
           tradeId,
           offeringPlayerId,
@@ -222,6 +240,10 @@ export async function POST(request: Request) {
           summary: summaryStr,
           completedSets,
         },
+        delta: {
+          players: playersDelta,
+          tiles: tilesDelta
+        }
       })
     ]);
 

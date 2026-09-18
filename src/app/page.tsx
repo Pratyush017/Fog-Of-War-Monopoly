@@ -106,16 +106,12 @@ export default function LandingPage() {
   };
 
   return (
-    <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-8 flex flex-col items-center justify-center relative min-h-[100dvh] font-sans selection:bg-amber-800 selection:text-white">
+    <div className="w-full min-h-screen bg-cover bg-center bg-no-repeat" style={{ backgroundImage: "url('/screen2.png')" }}>
+      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-8 flex flex-col items-center justify-center relative min-h-[100dvh] font-sans selection:bg-amber-800 selection:text-white">
       
       {/* SCREEN 1: MAIN MENU */}
       {view === "main" && (
-        <section className="w-full flex-col items-center transition-all duration-300 flex" id="screen-main">
-          <div className="text-center mb-8">
-            <h1 className="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
-              Fog of War<br />Monopoly
-            </h1>
-          </div>
+        <section className="w-full flex-col items-center transition-all duration-300 flex mt-32" id="screen-main">
           
           <div className="deckled-edges parchment-card w-full max-w-[490px] rounded-sm p-6 sm:p-9 text-[#422c16]">
             <div className="space-y-4 mb-8">
@@ -148,12 +144,7 @@ export default function LandingPage() {
 
       {/* SCREEN 2: INVITE CODE */}
       {view === "invite" && (
-        <section className="w-full flex-col items-center transition-all duration-300 flex" id="screen-invite">
-          <div className="text-center mb-8">
-            <h1 className="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
-              Fog of War<br />Monopoly
-            </h1>
-          </div>
+        <section className="w-full flex-col items-center transition-all duration-300 flex mt-32" id="screen-invite">
           
           <div className="relative bg-[#f1e3c5] border-4 border-[#52341d] rounded shadow-2xl w-full max-w-[500px] p-6 sm:p-8 text-[#4a3420]">
             <div className="brass-corner-tl"></div>
@@ -201,12 +192,7 @@ export default function LandingPage() {
 
       {/* SCREEN 3: CHARACTER SELECT */}
       {view === "character" && (
-        <section className="w-full flex-col items-center transition-all duration-300 flex" id="screen-character">
-          <div className="text-center mb-6">
-            <h1 className="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
-              Fog of War<br />Monopoly
-            </h1>
-          </div>
+        <section className="w-full flex-col items-center transition-all duration-300 flex mt-32" id="screen-character">
           
           <div className="deckled-edges parchment-card w-full max-w-[620px] rounded-sm p-6 sm:p-8 text-[#4a3420]">
             <button 
@@ -301,6 +287,7 @@ export default function LandingPage() {
         </section>
       )}
 
-    </main>
+      </main>
+    </div>
   );
 }

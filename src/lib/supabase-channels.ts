@@ -41,7 +41,16 @@ export type GameEventPayload =
   | { type: "trade-declined"; payload: { tradeId: string; offeringPlayerId: string; targetPlayerId: string; targetPlayerName: string } }
   | { type: "trade-voided"; payload: { tradeId: string; reason: string } };
 
-export type GameEvent = GameEventPayload & { actionId?: string };
+export type GameEvent = GameEventPayload & { 
+  actionId?: string;
+  timestamp?: number;
+  telemetry?: Record<string, number>;
+  delta?: {
+    players?: any[];
+    tiles?: any[];
+    match?: any;
+  };
+};
 
 export interface TradeOfferProperty {
   tileId: string;
@@ -103,13 +112,18 @@ export async function serverBroadcast(
   matchId: string,
   event: GameEvent
 ) {
+  const stampedEvent = {
+    ...event,
+    timestamp: event.timestamp || Date.now(),
+  };
+
   const channel = activeChannels.get(matchId);
   if (channel) {
     // Already have a WebSocket connection (e.g. running in long-lived server environment)
     await channel.send({
       type: "broadcast",
       event: "game-event",
-      payload: event,
+      payload: stampedEvent,
     });
   } else {
     // Running in an API route (stateless) - no active WebSocket connection.
@@ -117,6 +131,6 @@ export async function serverBroadcast(
     const tempChannel = supabase.channel(`match:${matchId}`);
     
     // @ts-ignore - httpSend exists but might not be in the exact local types yet
-    await tempChannel.httpSend("game-event", event);
+    await tempChannel.httpSend("game-event", stampedEvent);
   }
 }

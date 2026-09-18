@@ -117,12 +117,9 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
   }, [inviteCode, router, setMatch, setPlayers, setTiles, setMyPlayerId, setEventLog]);
 
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedFetchGameState = useCallback(() => {
-    if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
-    fetchTimeoutRef.current = setTimeout(() => {
-      fetchGameState();
-    }, 50);
-  }, [fetchGameState]);
+  const applyDelta = useCallback((delta: NonNullable<GameEvent['delta']>, timestamp: number) => {
+    useGameStore.getState().applyDelta(delta, timestamp);
+  }, []);
 
   useEffect(() => {
     useGameStore.getState().resetStore();
@@ -135,9 +132,9 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
       const a = (window as any)._lastAction;
       if (a) {
         const echo = performance.now();
-if (process.env.NODE_ENV !== 'production') {
-      console.log(`[TIMELINE: ECHO] Event received (${event.type}). Click -> Echo: ${(echo - a.start).toFixed(2)}ms`);
-    }
+        if (process.env.NODE_ENV !== 'production') {
+          console.log(`[TIMELINE: ECHO] Event received (${event.type}). Click -> Echo: ${(echo - a.start).toFixed(2)}ms`);
+        }
       }
       
       const win = window as any;
@@ -150,9 +147,37 @@ if (process.env.NODE_ENV !== 'production') {
         // We drop the event to prevent redundant state writes, EXCEPT for 'dice-rolled' 
         // which might need to process other things (or maybe we drop that too, since optimistic handled it).
         // Actually, if we optimistic updated it, we should completely drop the echo to prevent any flicker!
-        return; 
+        if (event.type !== "dice-rolled") {
+          return; 
+        }
+      }
+
+  // Apply delta directly to Zustand store if present
+      if (event.delta && event.timestamp) {
+        useGameStore.getState().applyDelta(event.delta, event.timestamp);
       }
       
+      // Compute and log telemetry using console.table
+      if (event.telemetry && process.env.NODE_ENV !== 'production' && !isOwnAction) {
+        const opponentReceivedTime = Date.now();
+        const serverReceivedTime = event.telemetry.serverReceivedTime;
+        const serverBroadcastTime = event.telemetry.serverBroadcastTime;
+        
+        // Render time (approximated as immediately after state sync triggers)
+        requestAnimationFrame(() => {
+          const opponentRenderTime = Date.now();
+          
+          console.groupCollapsed(`[TELEMETRY: ${event.type}] (Latency Sync)`);
+          console.table({
+            "Server Processing (API)": `${serverBroadcastTime - serverReceivedTime}ms`,
+            "WebSocket Transit": `${opponentReceivedTime - serverBroadcastTime}ms`,
+            "Client Render (Zustand)": `${opponentRenderTime - opponentReceivedTime}ms`,
+            "Total E2E Latency": `${opponentRenderTime - serverReceivedTime}ms`
+          });
+          console.groupEnd();
+        });
+      }
+
       const currentPlayers = useGameStore.getState().players;
 
       switch (event.type) {
@@ -184,8 +209,6 @@ if (process.env.NODE_ENV !== 'production') {
 
         case "game-started":
           updateMatch({ status: "PLAYING", currentTurnId: event.payload.currentTurnId, turnEndsAt: event.payload.turnEndsAt, hasRolled: event.payload.hasRolled });
-          
-          debouncedFetchGameState(); // Refresh full state
           break;
 
         case "new-log": {
@@ -283,8 +306,6 @@ if (process.env.NODE_ENV !== 'production') {
           }
 
           // Re-fetch to get accurate property data
-          debouncedFetchGameState();
-          
           break;
         }
 
@@ -295,8 +316,6 @@ if (process.env.NODE_ENV !== 'production') {
         case "rent-paid": {
           const payer = currentPlayers.find((p) => p.id === event.payload.payerId);
           const owner = currentPlayers.find((p) => p.id === event.payload.ownerId);
-          
-          debouncedFetchGameState(); // Refresh cash
           break;
         }
 
@@ -343,8 +362,6 @@ if (process.env.NODE_ENV !== 'production') {
         case "auction-won": {
           const winner = currentPlayers.find((p) => p.id === event.payload.winnerId);
           resetAuction();
-          
-          debouncedFetchGameState();
           break;
         }
 
@@ -359,8 +376,6 @@ if (process.env.NODE_ENV !== 'production') {
 
         case "jail-paid": {
           const jailee = currentPlayers.find((p) => p.id === event.payload.playerId);
-          
-          debouncedFetchGameState();
           break;
         }
 
@@ -372,7 +387,6 @@ if (process.env.NODE_ENV !== 'production') {
         case "turn-changed":
           updateMatch({ currentTurnId: event.payload.currentTurnId, turnEndsAt: event.payload.turnEndsAt, hasRolled: event.payload.hasRolled });
           setPendingAction(null);
-          debouncedFetchGameState(); // Sync all state
           break;
 
         case "bankruptcy-shuffle": {
@@ -385,7 +399,6 @@ if (process.env.NODE_ENV !== 'production') {
           setShufflingTiles(event.payload.affectedIndices);
           setTimeout(() => {
             setShufflingTiles([]);
-            debouncedFetchGameState(); // Refresh board after animation
           }, 1500);
           break;
         }
@@ -406,10 +419,10 @@ if (process.env.NODE_ENV !== 'production') {
                 type: event.type === "chance-card" ? "CHANCE" : "CHEST",
                 description: event.payload.description,
               });
-              debouncedFetchGameState();
+              if (!event.delta) debouncedFetchGameState();
             }, 900);
           } else {
-            debouncedFetchGameState();
+            if (!event.delta) debouncedFetchGameState();
           }
           break;
         }
@@ -419,7 +432,7 @@ if (process.env.NODE_ENV !== 'production') {
             if (event.payload.playerId !== myPlayerIdRef.current) {
               playNotification();
             }
-            debouncedFetchGameState();
+            if (!event.delta) debouncedFetchGameState();
           }, 900);
           break;
         }
@@ -444,7 +457,7 @@ if (process.env.NODE_ENV !== 'production') {
         case "loan-repaid":
         case "liquidation-started":
         case "liquidation-completed":
-          debouncedFetchGameState();
+          if (!event.delta) debouncedFetchGameState();
           break;
 
         case "trade-offer":
@@ -467,7 +480,7 @@ if (process.env.NODE_ENV !== 'production') {
             });
           }
           playNotification();
-          debouncedFetchGameState();
+          if (!event.delta) debouncedFetchGameState();
           break;
 
         case "trade-declined":
@@ -478,11 +491,9 @@ if (process.env.NODE_ENV !== 'production') {
 
         case "trade-voided":
           alert(`Trade could not be completed: ${event.payload.reason}`);
-          debouncedFetchGameState();
           break;
 
         case "state-sync":
-          debouncedFetchGameState();
           break;
 
         default:
@@ -490,7 +501,7 @@ if (process.env.NODE_ENV !== 'production') {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [debouncedFetchGameState, fetchGameState]
+    [fetchGameState]
   );
 
   // Subscribe to realtime events

@@ -5,7 +5,8 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
-    const { matchId, playerId, amount } = await request.json();
+    const serverReceivedTime = Date.now();
+    const { matchId, playerId, amount, actionId } = await request.json();
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },
@@ -28,17 +29,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid bid amount" }, { status: 400 });
     }
 
-    await logGameEvent(match.id, match.inviteCode, `${player.name} bid $${amount}`, "info");
-
     // Broadcast bid
-    await serverBroadcast(match.inviteCode, {
+    const broadcastPromise = serverBroadcast(match.inviteCode, {
       type: "bid-placed",
+      actionId,
+      telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
       payload: {
         playerId,
         playerName: player.name,
         amount,
       },
     });
+
+    const logPromise = logGameEvent(match.id, match.inviteCode, `${player.name} bid $${amount}`, "info");
+
+    await Promise.all([broadcastPromise, logPromise]);
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -198,6 +198,9 @@ interface GameStore {
   autoRollRequested: boolean;
   setAutoRollRequested: (val: boolean) => void;
 
+  // Universal Delta application
+  applyDelta: (delta: { players?: any[]; tiles?: any[]; match?: any }, timestamp: number) => void;
+
   // Reset entire store
   resetStore: () => void;
 }
@@ -399,4 +402,58 @@ export const useGameStore = create<GameStore>((set, get) => ({
     activeTradePartnerId: null,
     autoRollRequested: false,
   }),
+
+  // Universal Delta application natively merging payload.delta into the local state
+  applyDelta: (delta, timestamp) => {
+    // We only merge if the timestamp is newer (done previously outside, but Zustand makes it easy)
+    const win = window as any;
+    if (!win._lastDeltaTimestamps) win._lastDeltaTimestamps = {};
+    const timestamps = win._lastDeltaTimestamps;
+
+    set((state) => {
+      let nextState = { ...state };
+      
+      if (delta.players) {
+        nextState.players = [...state.players];
+        delta.players.forEach(p => {
+          if (p.id !== undefined) {
+            const key = `player:${p.id}`;
+            if ((timestamps[key] || 0) < timestamp) {
+              const idx = nextState.players.findIndex(x => x.id === p.id);
+              if (idx !== -1) {
+                nextState.players[idx] = { ...nextState.players[idx], ...p };
+              }
+              timestamps[key] = timestamp;
+            }
+          }
+        });
+      }
+
+      if (delta.tiles) {
+        nextState.tiles = [...state.tiles];
+        delta.tiles.forEach(t => {
+          if (t.boardIndex !== undefined) {
+            const key = `tile:${t.boardIndex}`;
+            if ((timestamps[key] || 0) < timestamp) {
+              const idx = nextState.tiles.findIndex(x => x.boardIndex === t.boardIndex);
+              if (idx !== -1) {
+                nextState.tiles[idx] = { ...nextState.tiles[idx], ...t };
+              }
+              timestamps[key] = timestamp;
+            }
+          }
+        });
+      }
+
+      if (delta.match) {
+        const key = `match`;
+        if ((timestamps[key] || 0) < timestamp) {
+          nextState.match = nextState.match ? { ...nextState.match, ...delta.match } : delta.match;
+          timestamps[key] = timestamp;
+        }
+      }
+
+      return nextState;
+    });
+  },
 }));

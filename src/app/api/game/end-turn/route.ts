@@ -7,6 +7,7 @@ import { resolveForcedBankruptcy } from "@/lib/debt-utils";
 
 export async function POST(request: Request) {
   try {
+    const serverReceivedTime = Date.now();
     const { matchId, playerId, actionId } = await request.json();
 
     const match = await prisma.match.findUnique({
@@ -86,7 +87,28 @@ export async function POST(request: Request) {
       if (activePlayer.cash >= totalDebt) {
         // Auto-deduct debt
         const updatedCash = activePlayer.cash - totalDebt;
-        await prisma.player.update({
+        const broadcastPromise = serverBroadcast(match.inviteCode, {
+          type: "loan-repaid",
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+          payload: {
+            playerId: activePlayer.id,
+            playerName: activePlayer.name,
+            amount: totalDebt,
+          },
+          delta: {
+            players: [{
+              id: activePlayer.id,
+              cash: updatedCash,
+              loanType: null,
+              loanPrincipal: 0,
+              loanInterest: 0,
+              loanDeadlineTurn: null,
+              isLiquidating: false,
+            }]
+          }
+        });
+
+        const dbPromise = prisma.player.update({
           where: { id: activePlayer.id },
           data: {
             cash: updatedCash,
@@ -98,27 +120,38 @@ export async function POST(request: Request) {
           },
         });
 
-        await logGameEvent(
+        const logPromise = logGameEvent(
           match.id,
           match.inviteCode,
           `💰 ${activePlayer.name}'s loan matured: Paid $${totalDebt} to the bank. Debt settled!`,
           "info"
         );
 
-        await serverBroadcast(match.inviteCode, {
-          type: "loan-repaid",
-          payload: {
-            playerId: activePlayer.id,
-            playerName: activePlayer.name,
-            amount: totalDebt,
-          },
-        });
+        await Promise.all([broadcastPromise, dbPromise, logPromise]);
       } else {
         // Insufficient cash: Deduct ALL available cash, remaining balance becomes new totalDebt, trigger liquidation
         const availableCash = Math.max(0, activePlayer.cash);
         const remainingDebt = totalDebt - availableCash;
 
-        await prisma.player.update({
+        const broadcastPromise = serverBroadcast(match.inviteCode, {
+          type: "liquidation-started",
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+          payload: {
+            playerId: activePlayer.id,
+            remainingDebt,
+          },
+          delta: {
+            players: [{
+              id: activePlayer.id,
+              cash: 0,
+              loanPrincipal: remainingDebt,
+              loanInterest: 0,
+              isLiquidating: true,
+            }]
+          }
+        });
+
+        const dbPromise = prisma.player.update({
           where: { id: activePlayer.id },
           data: {
             cash: 0,
@@ -128,20 +161,14 @@ export async function POST(request: Request) {
           },
         });
 
-        await logGameEvent(
+        const logPromise = logGameEvent(
           match.id,
           match.inviteCode,
           `⚠️ ${activePlayer.name} could not repay loan ($${totalDebt})! Seized $${availableCash} cash. Remaining $${remainingDebt} entered forced liquidation!`,
           "alert"
         );
 
-        await serverBroadcast(match.inviteCode, {
-          type: "liquidation-started",
-          payload: {
-            playerId: activePlayer.id,
-            remainingDebt,
-          },
-        });
+        await Promise.all([broadcastPromise, dbPromise, logPromise]);
 
 
         // DO NOT end the turn!
@@ -167,7 +194,24 @@ export async function POST(request: Request) {
     // Reset hasRolled and set new turnEndsAt (+3 mins)
     const newTurnEndsAt = new Date(Date.now() + 3 * 60 * 1000);
 
-    await prisma.$transaction([
+    // 1. Broadcast immediately
+    const broadcastPromise = serverBroadcast(match.inviteCode, {
+      type: "turn-changed",
+      actionId,
+      telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+      payload: { 
+        currentTurnId: nextPlayerId,
+        turnEndsAt: newTurnEndsAt.toISOString(),
+        hasRolled: false
+      },
+      delta: {
+        players: [{ id: activePlayer.id, turnsPlayed: activePlayer.turnsPlayed + 1 }],
+        match: { currentTurnId: nextPlayerId, hasRolled: false, turnEndsAt: newTurnEndsAt }
+      }
+    });
+
+    // 2. Persist to DB
+    const dbPromise = prisma.$transaction([
       prisma.player.update({
         where: { id: activePlayer.id },
         data: { turnsPlayed: { increment: 1 } },
@@ -189,16 +233,7 @@ export async function POST(request: Request) {
       })
     ]);
 
-    // Send the broadcast to clients via WebSocket server
-    await serverBroadcast(match.inviteCode, {
-      type: "turn-changed",
-      actionId,
-      payload: { 
-        currentTurnId: nextPlayerId,
-        turnEndsAt: newTurnEndsAt.toISOString(),
-        hasRolled: false
-      },
-    });
+    await Promise.all([broadcastPromise, dbPromise]);
 
     return NextResponse.json({ success: true, nextTurnId: nextPlayerId });
   } catch (error) {

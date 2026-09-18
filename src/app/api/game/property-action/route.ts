@@ -13,6 +13,7 @@ import {
 
 export async function POST(request: Request) {
   try {
+    const serverReceivedTime = Date.now();
     const { matchId, playerId, tileId, action, actionId } = await request.json();
 
     if (!matchId || !playerId || !tileId || !action) {
@@ -86,10 +87,51 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not enough cash" }, { status: 400 });
     }
 
-    // Execute Transaction
+    // Pre-calculate debt interception for accurate delta
     let actualCashChange = cashChange;
-    await prisma.$transaction(async (tx) => {
-      actualCashChange = await interceptCashInflow(tx, playerId, cashChange);
+    let newDebtAmount = player.debtAmount;
+    let creditorUpdate = null;
+    
+    if (cashChange > 0 && player.debtAmount > 0 && player.creditorId) {
+      const amountToCreditor = Math.min(cashChange, player.debtAmount);
+      // actualCashChange remains cashChange because their cash was already decremented by the full debt amount!
+      newDebtAmount = player.debtAmount - amountToCreditor;
+      
+      const creditor = match.players.find(p => p.id === player.creditorId);
+      if (creditor) {
+        creditorUpdate = { id: creditor.id, cash: creditor.cash + amountToCreditor };
+      }
+    }
+
+    const newCash = player.cash + actualCashChange;
+    const playersDelta: any[] = [
+      { id: playerId, cash: newCash, debtAmount: newDebtAmount, creditorId: newDebtAmount === 0 ? null : player.creditorId }
+    ];
+    if (creditorUpdate) playersDelta.push(creditorUpdate);
+
+    // 1. Broadcast immediately
+    const broadcastPromise = serverBroadcast(match.inviteCode, {
+      type: "property-action",
+      actionId,
+      telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+      payload: {
+        playerId,
+        boardIndex: tile.boardIndex,
+        action,
+        newCash,
+        newHouses,
+        newIsMortgaged,
+        newOwnerId,
+      },
+      delta: {
+        players: playersDelta,
+        tiles: [{ boardIndex: tile.boardIndex, houses: newHouses, isMortgaged: newIsMortgaged, ownerId: newOwnerId }]
+      }
+    });
+
+    // 2. Execute Transaction
+    const dbPromise = prisma.$transaction(async (tx) => {
+      await interceptCashInflow(tx, playerId, cashChange);
 
       await tx.matchTile.update({
         where: { id: tile.id },
@@ -99,36 +141,20 @@ export async function POST(request: Request) {
           ownerId: newOwnerId,
         },
       });
-
-      await tx.gameLog.create({
-        data: {
-          matchId: match.id,
-          message: `${player.name} performed ${action} on ${property.name}`,
-          type: "info"
-        }
-      });
     });
 
-    // Broadcast Update
-    await Promise.all([
-      serverBroadcast(match.inviteCode, {
-        type: "property-action",
-        actionId,
-        payload: {
-          playerId,
-          boardIndex: tile.boardIndex,
-          action,
-          newCash: player.cash + actualCashChange,
-          newHouses,
-          newIsMortgaged,
-          newOwnerId,
-        },
-      })
-    ]);
+    const logPromise = logGameEvent(
+      match.id,
+      match.inviteCode,
+      `${player.name} performed ${action} on ${property.name}`,
+      "info"
+    );
+
+    await Promise.all([broadcastPromise, dbPromise, logPromise]);
 
     return NextResponse.json({
       success: true,
-      newCash: player.cash + actualCashChange,
+      newCash,
       newHouses,
       newIsMortgaged,
       newOwnerId,

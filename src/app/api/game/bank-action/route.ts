@@ -6,7 +6,8 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
-    const { matchId, playerId, action } = await request.json();
+    const serverReceivedTime = Date.now();
+    const { matchId, playerId, action, actionId } = await request.json();
 
     if (!matchId || !playerId || !action) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -35,24 +36,24 @@ export async function POST(request: Request) {
 
     if (action === "LOAN") {
       // ── Take Loan ($600) ──
-      await prisma.$transaction(async (tx) => {
-        await tx.player.update({
-          where: { id: playerId },
-          data: { cash: { increment: 600 } },
-        });
-      });
-
-      await serverBroadcast(match.inviteCode, {
-        type: "state-sync",
-        payload: {},
-      });
-
-      await logGameEvent(match.id, match.inviteCode, `${player.name} took a $600 loan from the bank!`, "info");
-
-      await serverBroadcast(match.inviteCode, {
+      const broadcastPromise = serverBroadcast(match.inviteCode, {
+        actionId,
         type: "loan-taken",
+        telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
         payload: { playerId, playerName: player.name, amount: 600 },
+        delta: {
+          players: [{ id: playerId, cash: player.cash + 600 }]
+        }
       });
+
+      const dbPromise = prisma.player.update({
+        where: { id: playerId },
+        data: { cash: { increment: 600 } },
+      });
+
+      const logPromise = logGameEvent(match.id, match.inviteCode, `${player.name} took a $600 loan from the bank!`, "info");
+
+      await Promise.all([broadcastPromise, dbPromise, logPromise]);
 
       return NextResponse.json({ success: true });
     } 
@@ -63,8 +64,86 @@ export async function POST(request: Request) {
       const netWorth = calculatePlayerNetWorth(player.cash, ownedTiles);
       const cappedPayment = Math.min(netWorth, 0); // self-declared bankruptcy debtAmount is 0
 
-      await prisma.$transaction(async (tx) => {
-        // Bankrupt the player
+      // ── Seizure + Shuffle Setup ──
+      const seizedTiles = match.tiles.filter((t) => t.ownerId === playerId);
+      const unrevealedTiles = match.tiles.filter(
+        (t) => !t.isRevealed && t.tileType === "PROPERTY" && t.ownerId !== playerId
+      );
+
+      const affectedTiles = [...seizedTiles, ...unrevealedTiles];
+      const propertyIds = affectedTiles
+        .map((t) => t.propertyId)
+        .filter((id): id is string => id !== null);
+
+      const shuffledPropertyIds = shuffleArray(propertyIds);
+      const affectedIndices: number[] = [];
+      const tilesDelta: any[] = [];
+      
+      for (let i = 0; i < affectedTiles.length; i++) {
+        const tile = affectedTiles[i];
+        affectedIndices.push(tile.boardIndex);
+        const newPropertyId = shuffledPropertyIds[i] || null;
+        
+        tilesDelta.push({
+          boardIndex: tile.boardIndex,
+          propertyId: newPropertyId,
+          ownerId: null,
+          isRevealed: false,
+          houses: 0,
+          isMortgaged: false,
+        });
+      }
+
+      // Check if game is over
+      const activePlayers = match.players.filter(
+        (p) => !p.isBankrupt && p.id !== playerId
+      );
+      
+      const isGameOver = activePlayers.length === 1;
+      const winner = isGameOver ? activePlayers[0] : null;
+      let nextPlayerId = match.currentTurnId;
+      
+      if (!isGameOver && match.currentTurnId === playerId) {
+        const nextPlayers = activePlayers.sort((a, b) => a.turnOrder - b.turnOrder);
+        nextPlayerId = nextPlayers[0].id;
+      }
+
+      // ── 1. Broadcasts ──
+      const broadcastPromises: Promise<any>[] = [];
+      
+      broadcastPromises.push(serverBroadcast(match.inviteCode, {
+        actionId,
+        type: "bankruptcy-shuffle",
+        telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+        payload: {
+          bankruptPlayerId: playerId,
+          creditorId: "bank",
+          paidAmount: cappedPayment,
+          affectedIndices,
+        },
+        delta: {
+          players: [{ id: playerId, cash: 0, isBankrupt: true }],
+          tiles: tilesDelta,
+          match: isGameOver ? { status: "FINISHED", currentTurnId: null } : { currentTurnId: nextPlayerId }
+        }
+      }));
+
+      if (isGameOver) {
+        broadcastPromises.push(serverBroadcast(match.inviteCode, {
+          type: "game-over",
+          payload: { winnerId: winner!.id, winnerName: winner!.name },
+        }));
+      } else if (match.currentTurnId === playerId) {
+        broadcastPromises.push(serverBroadcast(match.inviteCode, {
+          type: "turn-changed",
+          payload: { currentTurnId: nextPlayerId! },
+        }));
+      }
+      
+      await Promise.all(broadcastPromises);
+
+      // ── 2. Persistence ──
+      const dbPromise = prisma.$transaction(async (tx) => {
         await tx.player.update({
           where: { id: playerId },
           data: {
@@ -73,26 +152,9 @@ export async function POST(request: Request) {
           },
         });
 
-        // ── Seizure + Shuffle ──
-        const seizedTiles = match.tiles.filter((t) => t.ownerId === playerId);
-        const unrevealedTiles = match.tiles.filter(
-          (t) => !t.isRevealed && t.tileType === "PROPERTY" && t.ownerId !== playerId
-        );
-
-        const affectedTiles = [...seizedTiles, ...unrevealedTiles];
-        const propertyIds = affectedTiles
-          .map((t) => t.propertyId)
-          .filter((id): id is string => id !== null);
-
-        const shuffledPropertyIds = shuffleArray(propertyIds);
-        const affectedIndices: number[] = [];
-        
         for (let i = 0; i < affectedTiles.length; i++) {
-          const tile = affectedTiles[i];
-          affectedIndices.push(tile.boardIndex);
-
           await tx.matchTile.update({
-            where: { id: tile.id },
+            where: { id: affectedTiles[i].id },
             data: {
               propertyId: shuffledPropertyIds[i] || null,
               ownerId: null,
@@ -102,60 +164,30 @@ export async function POST(request: Request) {
             },
           });
         }
-
-        await logGameEvent(match.id, match.inviteCode, `💀 ${player.name} went bankrupt! ${affectedIndices.length} tiles reshuffled!`, "bankrupt");
-
-        // Broadcast bankruptcy shuffle
-        await serverBroadcast(match.inviteCode, {
-          type: "bankruptcy-shuffle",
-          payload: {
-            bankruptPlayerId: playerId,
-            creditorId: "bank",
-            paidAmount: cappedPayment,
-            affectedIndices,
-          },
-        });
-
-        await serverBroadcast(match.inviteCode, {
-          type: "player-bankrupt",
-          payload: { playerId: playerId },
-        });
-      });
-
-      // Check if game is over (only 1 player left)
-      const activePlayers = match.players.filter(
-        (p) => !p.isBankrupt && p.id !== playerId
-      );
-
-      if (activePlayers.length === 1) {
-        const winner = activePlayers[0];
-        await prisma.match.update({
-          where: { id: matchId },
-          data: { status: "FINISHED", currentTurnId: null },
-        });
-        await logGameEvent(match.id, match.inviteCode, `🏆 ${winner.name} wins the game!`, "info");
-        await serverBroadcast(match.inviteCode, {
-          type: "game-over",
-          payload: { winnerId: winner.id, winnerName: winner.name },
-        });
-      } else {
-        // Advance turn if it was the bankrupt player's turn
-        if (match.currentTurnId === playerId) {
-          const nextPlayers = activePlayers.sort((a, b) => a.turnOrder - b.turnOrder);
-          const nextPlayer = nextPlayers[0];
-          await prisma.match.update({
+        
+        if (isGameOver) {
+          await tx.match.update({
             where: { id: matchId },
-            data: { currentTurnId: nextPlayer.id },
+            data: { status: "FINISHED", currentTurnId: null },
           });
-          await serverBroadcast(match.inviteCode, {
-            type: "turn-changed",
-            payload: { currentTurnId: nextPlayer.id },
+        } else if (match.currentTurnId === playerId) {
+          await tx.match.update({
+            where: { id: matchId },
+            data: { currentTurnId: nextPlayerId },
           });
         }
-      }
+      });
+
+      const logsPromise = Promise.all([
+        logGameEvent(match.id, match.inviteCode, `💀 ${player.name} went bankrupt! ${affectedIndices.length} tiles reshuffled!`, "bankrupt"),
+        isGameOver ? logGameEvent(match.id, match.inviteCode, `🏆 ${winner!.name} wins the game!`, "info") : Promise.resolve()
+      ]);
+
+      await Promise.all([dbPromise, logsPromise]);
 
       return NextResponse.json({ success: true, cappedPayment, debtErased: 0 });
     }
+
 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {

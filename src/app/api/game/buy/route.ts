@@ -41,6 +41,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Cannot buy non-property tile" }, { status: 400 });
     }
 
+    // Add timing telemetry
+    const serverReceivedTime = Date.now();
+
     // Price calculation
     const buyPrice = price !== undefined ? price : getPurchasePrice(tile, tile.property!);
 
@@ -48,8 +51,27 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Not enough cash" }, { status: 400 });
     }
 
-    // Execute purchase
-    await prisma.$transaction([
+    // 1. Broadcast immediately (Ultra-Low Latency)
+    const broadcastPromise = serverBroadcast(match.inviteCode, {
+      actionId,
+      type: "tile-bought",
+      telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+      payload: {
+        boardIndex,
+        ownerId: playerId,
+        newCash: player.cash - buyPrice,
+        propertyId: tile.propertyId!,
+        propertyName: tile.property?.name ?? "Unknown",
+        colorSet: tile.property?.colorSet ?? "",
+      },
+      delta: {
+        players: [{ id: playerId, cash: player.cash - buyPrice }],
+        tiles: [{ boardIndex, ownerId: playerId, isRevealed: true }]
+      }
+    });
+
+    // 2. Persist to DB
+    const dbPromise = prisma.$transaction([
       prisma.player.update({
         where: { id: playerId },
         data: { cash: { decrement: buyPrice } },
@@ -63,21 +85,11 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    await logGameEvent(match.id, match.inviteCode, `${player.name} bought ${tile.property?.name ?? "Unknown"} for $${buyPrice}`, "buy");
+    // 3. Log event
+    const logPromise = logGameEvent(match.id, match.inviteCode, `${player.name} bought ${tile.property?.name ?? "Unknown"} for $${buyPrice}`, "buy");
 
-    // Broadcast tile bought (triggers flip animation)
-    await serverBroadcast(match.inviteCode, {
-      actionId,
-      type: "tile-bought",
-      payload: {
-        boardIndex,
-        ownerId: playerId,
-        newCash: player.cash - buyPrice,
-        propertyId: tile.propertyId!,
-        propertyName: tile.property?.name ?? "Unknown",
-        colorSet: tile.property?.colorSet ?? "",
-      },
-    });
+    // Wait for all to finish
+    await Promise.all([broadcastPromise, dbPromise, logPromise]);
 
     // Turn advancement is now manual/timer-based
 

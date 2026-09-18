@@ -5,6 +5,7 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
+    const serverReceivedTime = Date.now();
     const { matchId, playerId, action, actionId } = await request.json();
     // action: "bail" (pay $75 to roll) or "wait" (pay $50 maintenance)
 
@@ -23,8 +24,28 @@ export async function POST(request: Request) {
     }
 
     if (action === "bail") {
-      // Pay $75 to get out and roll
-      await prisma.$transaction([
+      const broadcastPromises = [
+        serverBroadcast(match.inviteCode, {
+          type: "jail-paid",
+          actionId,
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+          payload: { playerId, amount: 75, type: "bail" },
+          delta: {
+            players: [{
+              id: playerId,
+              cash: player.cash - 75,
+              inJail: false,
+              jailTurns: 0,
+            }]
+          }
+        }),
+        serverBroadcast(match.inviteCode, {
+          type: "jail-freed",
+          payload: { playerId },
+        })
+      ];
+
+      const dbPromise = prisma.$transaction([
         prisma.player.update({
           where: { id: playerId },
           data: {
@@ -42,17 +63,7 @@ export async function POST(request: Request) {
         })
       ]);
 
-      await Promise.all([
-        serverBroadcast(match.inviteCode, {
-          type: "jail-paid",
-          actionId,
-          payload: { playerId, amount: 75, type: "bail" },
-        }),
-        serverBroadcast(match.inviteCode, {
-          type: "jail-freed",
-          payload: { playerId },
-        })
-      ]);
+      await Promise.all([...broadcastPromises, dbPromise]);
 
       return NextResponse.json({ freed: true, action: "roll-now" });
     } else {
@@ -100,14 +111,22 @@ export async function POST(request: Request) {
         );
       }
 
-      await prisma.$transaction(txActions);
-
       const broadcasts = [];
       broadcasts.push(
         serverBroadcast(match.inviteCode, {
           type: "jail-paid",
           actionId,
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
           payload: { playerId, amount: 50, type: "maintenance" },
+          delta: {
+            players: [{
+              id: playerId,
+              cash: player.cash - 50,
+              jailTurns: isFreed ? 0 : newJailTurns,
+              inJail: !isFreed,
+            }],
+            match: isFreed ? undefined : { hasRolled: true }
+          }
         })
       );
       if (isFreed) {
@@ -118,9 +137,8 @@ export async function POST(request: Request) {
           })
         );
       }
-      broadcasts.push(serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} }));
 
-      await Promise.all(broadcasts);
+      await Promise.all([...broadcasts, prisma.$transaction(txActions)]);
 
       if (isFreed) {
         return NextResponse.json({ freed: true, action: "roll-now", forcedRelease: true });

@@ -23,7 +23,6 @@ export async function interceptCashInflow(
   
   if (player.debtAmount > 0 && player.creditorId) {
     const amountToCreditor = Math.min(amount, player.debtAmount);
-    const remainder = amount - amountToCreditor;
     const newDebtAmount = player.debtAmount - amountToCreditor;
     
     // Pay creditor
@@ -32,17 +31,17 @@ export async function interceptCashInflow(
       data: { cash: { increment: amountToCreditor } }
     });
 
-    // Update debtor
+    // Update debtor (They get the full amount because their cash was already decremented by the full debt when it was created)
     await tx.player.update({
       where: { id: playerId },
       data: {
         debtAmount: newDebtAmount,
         creditorId: newDebtAmount === 0 ? null : player.creditorId,
-        cash: { increment: remainder }
+        cash: { increment: amount }
       }
     });
 
-    return remainder;
+    return amount;
   } else {
     // No debt to another player
     await tx.player.update({

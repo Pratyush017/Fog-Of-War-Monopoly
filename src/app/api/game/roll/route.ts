@@ -6,6 +6,7 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
+    const serverReceivedTime = Date.now();
     const { matchId, playerId, actionId, isAutoRoll } = await request.json();
 
     const match = await prisma.match.findUnique({
@@ -108,6 +109,7 @@ export async function POST(request: Request) {
         await serverBroadcast(match.inviteCode, {
           actionId,
           type: "dice-rolled",
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
           payload: {
             playerId,
             dice: [dice.die1, dice.die2],
@@ -115,6 +117,9 @@ export async function POST(request: Request) {
             hasRolled: true,
             newPosition,
           },
+          delta: {
+            match: { hasRolled: !dice.isDoubles }
+          }
         });
 
         // ── Update player position ──
@@ -146,12 +151,22 @@ export async function POST(request: Request) {
         // Broadcast movement
         await serverBroadcast(match.inviteCode, {
           type: "player-moved",
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
           payload: {
             playerId,
             from: oldPosition,
             to: newPosition, // this is already 10 if GO_TO_JAIL
             passedGo: passedGo || landedOnGo,
           },
+          delta: {
+            players: [{
+              id: playerId,
+              position: newPosition,
+              cash: player.cash + cashChange,
+              inJail: landedTile.tileType === "GO_TO_JAIL" ? true : player.inJail,
+              jailTurns: landedTile.tileType === "GO_TO_JAIL" ? 0 : player.jailTurns
+            }]
+          }
         });
         
         if (landedTile.tileType === "GO_TO_JAIL") {
@@ -325,6 +340,16 @@ export async function POST(request: Request) {
                 
                 await prisma.$transaction(txs);
                 await logGameEvent(match.id, match.inviteCode, `${player.name} paid $${rent} rent to ${owner.name} for ${landedTile.property.name}`, "rent");
+                const playersDelta: any[] = [];
+                if (debt > 0) {
+                  playersDelta.push({ id: playerId, cash: player.cash - rent, creditorId: owner.id, debtAmount: player.debtAmount + debt });
+                } else {
+                  playersDelta.push({ id: playerId, cash: player.cash - rent });
+                }
+                if (paidInstantly > 0) {
+                  playersDelta.push({ id: owner.id, cash: owner.cash + paidInstantly });
+                }
+
                 await serverBroadcast(match.inviteCode, {
                   type: "rent-paid",
                   payload: {
@@ -333,6 +358,7 @@ export async function POST(request: Request) {
                     amount: rent,
                     tileName: landedTile.property.name,
                   },
+                  delta: { players: playersDelta }
                 });
               }
             }
@@ -406,11 +432,13 @@ async function applyCardEffect(
           await serverBroadcast(inviteCode, {
             type: "go-collect",
             payload: { playerId, amount: cashChange },
+            delta: { players: [{ id: playerId, cash: (player?.cash ?? 0) + cashChange }] }
           });
         }
         await serverBroadcast(inviteCode, {
           type: "player-moved",
           payload: { playerId, from: player?.position ?? 0, to: card.moveTo, passedGo },
+          delta: { players: [{ id: playerId, position: card.moveTo }] }
         });
       }
       break;

@@ -6,7 +6,8 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
-    const { matchId, playerId, action, tileId } = await request.json();
+    const serverReceivedTime = Date.now();
+    const { matchId, playerId, action, tileId, actionId } = await request.json();
 
     if (!matchId || !playerId || !action) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
@@ -48,7 +49,26 @@ export async function POST(request: Request) {
       const newCash = player.cash + houseCost;
       const newHouses = tile.houses - 1;
 
-      await prisma.$transaction([
+      const broadcastPromise = serverBroadcast(match.inviteCode, {
+        actionId,
+        type: "property-action",
+        telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+        payload: {
+          playerId,
+          boardIndex: tile.boardIndex,
+          action: "DEGRADE",
+          newCash,
+          newHouses,
+          newIsMortgaged: tile.isMortgaged,
+          newOwnerId: playerId,
+        },
+        delta: {
+          players: [{ id: playerId, cash: newCash }],
+          tiles: [{ boardIndex: tile.boardIndex, houses: newHouses }]
+        }
+      });
+
+      const dbPromise = prisma.$transaction([
         prisma.player.update({
           where: { id: playerId },
           data: { cash: { increment: houseCost } },
@@ -59,25 +79,14 @@ export async function POST(request: Request) {
         }),
       ]);
 
-      await logGameEvent(
+      const logPromise = logGameEvent(
         match.id,
         match.inviteCode,
         `🏠 ${player.name} sold 1 house on ${tile.property.name} for +$${houseCost}`,
         "info"
       );
 
-      await serverBroadcast(match.inviteCode, {
-        type: "property-action",
-        payload: {
-          playerId,
-          boardIndex: tile.boardIndex,
-          action: "DEGRADE",
-          newCash,
-          newHouses,
-          newIsMortgaged: tile.isMortgaged,
-          newOwnerId: playerId,
-        },
-      });
+      await Promise.all([broadcastPromise, dbPromise, logPromise]);
 
 
       return NextResponse.json({
@@ -108,7 +117,26 @@ export async function POST(request: Request) {
       const surrenderValue = tile.property.price;
       const newCash = player.cash + surrenderValue;
 
-      await prisma.$transaction([
+      const broadcastPromise = serverBroadcast(match.inviteCode, {
+        actionId,
+        type: "property-action",
+        telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+        payload: {
+          playerId,
+          boardIndex: tile.boardIndex,
+          action: "SURRENDER",
+          newCash,
+          newHouses: 0,
+          newIsMortgaged: false,
+          newOwnerId: null,
+        },
+        delta: {
+          players: [{ id: playerId, cash: newCash }],
+          tiles: [{ boardIndex: tile.boardIndex, ownerId: null, houses: 0, isMortgaged: false, isRevealed: false }]
+        }
+      });
+
+      const dbPromise = prisma.$transaction([
         prisma.player.update({
           where: { id: playerId },
           data: { cash: { increment: surrenderValue } },
@@ -124,25 +152,14 @@ export async function POST(request: Request) {
         }),
       ]);
 
-      await logGameEvent(
+      const logPromise = logGameEvent(
         match.id,
         match.inviteCode,
         `🏛️ ${player.name} surrendered ${tile.property.name} to the bank for +$${surrenderValue}`,
         "info"
       );
 
-      await serverBroadcast(match.inviteCode, {
-        type: "property-action",
-        payload: {
-          playerId,
-          boardIndex: tile.boardIndex,
-          action: "SURRENDER",
-          newCash,
-          newHouses: 0,
-          newIsMortgaged: false,
-          newOwnerId: null,
-        },
-      });
+      await Promise.all([broadcastPromise, dbPromise, logPromise]);
 
 
       return NextResponse.json({
@@ -164,7 +181,29 @@ export async function POST(request: Request) {
 
       const updatedCash = player.cash - totalDebt;
 
-      await prisma.player.update({
+      const broadcastPromises = [
+        serverBroadcast(match.inviteCode, {
+          actionId,
+          type: "loan-repaid",
+          telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+          payload: {
+            playerId,
+            playerName: player.name,
+            amount: totalDebt,
+          },
+          delta: {
+            players: [{
+              id: playerId, cash: updatedCash, loanType: null, loanPrincipal: 0, loanInterest: 0, loanDeadlineTurn: null, isLiquidating: false
+            }]
+          }
+        }),
+        serverBroadcast(match.inviteCode, {
+          type: "liquidation-completed",
+          payload: { playerId },
+        })
+      ];
+
+      const dbPromise = prisma.player.update({
         where: { id: playerId },
         data: {
           cash: updatedCash,
@@ -176,26 +215,14 @@ export async function POST(request: Request) {
         },
       });
 
-      await logGameEvent(
+      const logPromise = logGameEvent(
         match.id,
         match.inviteCode,
         `🎉 ${player.name} paid $${totalDebt} to settle debt! Liquidation resolved.`,
         "info"
       );
 
-      await serverBroadcast(match.inviteCode, {
-        type: "loan-repaid",
-        payload: {
-          playerId,
-          playerName: player.name,
-          amount: totalDebt,
-        },
-      });
-
-      await serverBroadcast(match.inviteCode, {
-        type: "liquidation-completed",
-        payload: { playerId },
-      });
+      await Promise.all([...broadcastPromises, dbPromise, logPromise]);
 
 
       return NextResponse.json({
@@ -208,7 +235,85 @@ export async function POST(request: Request) {
     // ── 4. TOTAL DEFAULT (BANKRUPTCY LOAN ELIMINATION) ──
     if (action === "DECLARE_DEFAULT") {
       // Trigger total elimination: player isBankrupt = true, hasDefaulted = true
-      await prisma.$transaction(async (tx) => {
+      const seizedTiles = match.tiles.filter((t) => t.ownerId === playerId);
+      const unrevealedTiles = match.tiles.filter(
+        (t) => !t.isRevealed && t.tileType === "PROPERTY" && t.ownerId !== playerId
+      );
+
+      const affectedTiles = [...seizedTiles, ...unrevealedTiles];
+      const propertyIds = affectedTiles
+        .map((t) => t.propertyId)
+        .filter((id): id is string => id !== null);
+
+      const shuffledPropertyIds = shuffleArray(propertyIds);
+      const affectedIndices: number[] = [];
+      const tilesDelta: any[] = [];
+      
+      for (let i = 0; i < affectedTiles.length; i++) {
+        const tile = affectedTiles[i];
+        affectedIndices.push(tile.boardIndex);
+        const newPropertyId = shuffledPropertyIds[i] || null;
+        
+        tilesDelta.push({
+          boardIndex: tile.boardIndex,
+          propertyId: newPropertyId,
+          ownerId: null,
+          isRevealed: false,
+          houses: 0,
+          isMortgaged: false,
+        });
+      }
+
+      // Check if game is over
+      const activePlayers = match.players.filter(
+        (p) => !p.isBankrupt && p.id !== playerId
+      );
+      
+      const isGameOver = activePlayers.length === 1;
+      const winner = isGameOver ? activePlayers[0] : null;
+      let nextPlayerId = match.currentTurnId;
+      
+      if (!isGameOver && match.currentTurnId === playerId) {
+        const nextPlayers = activePlayers.sort((a, b) => a.turnOrder - b.turnOrder);
+        nextPlayerId = nextPlayers[0].id;
+      }
+
+      // ── 1. Broadcasts ──
+      const broadcastPromises: Promise<any>[] = [];
+      
+      broadcastPromises.push(serverBroadcast(match.inviteCode, {
+        actionId,
+        type: "bankruptcy-shuffle",
+        telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
+        payload: {
+          bankruptPlayerId: playerId,
+          creditorId: "bank",
+          paidAmount: player.cash,
+          affectedIndices,
+        },
+        delta: {
+          players: [{ id: playerId, cash: 0, isBankrupt: true, hasDefaulted: true, isLiquidating: false, loanType: null, loanPrincipal: 0, loanInterest: 0, loanDeadlineTurn: null }],
+          tiles: tilesDelta,
+          match: isGameOver ? { status: "FINISHED", currentTurnId: null } : { currentTurnId: nextPlayerId }
+        }
+      }));
+
+      if (isGameOver) {
+        broadcastPromises.push(serverBroadcast(match.inviteCode, {
+          type: "game-over",
+          payload: { winnerId: winner!.id, winnerName: winner!.name },
+        }));
+      } else if (match.currentTurnId === playerId) {
+        broadcastPromises.push(serverBroadcast(match.inviteCode, {
+          type: "turn-changed",
+          payload: { currentTurnId: nextPlayerId! },
+        }));
+      }
+      
+      await Promise.all(broadcastPromises);
+
+      // ── 2. Persistence ──
+      const dbPromise = prisma.$transaction(async (tx) => {
         await tx.player.update({
           where: { id: playerId },
           data: {
@@ -223,26 +328,9 @@ export async function POST(request: Request) {
           },
         });
 
-        // Seize any remaining tiles and shuffle
-        const seizedTiles = match.tiles.filter((t) => t.ownerId === playerId);
-        const unrevealedTiles = match.tiles.filter(
-          (t) => !t.isRevealed && t.tileType === "PROPERTY" && t.ownerId !== playerId
-        );
-
-        const affectedTiles = [...seizedTiles, ...unrevealedTiles];
-        const propertyIds = affectedTiles
-          .map((t) => t.propertyId)
-          .filter((id): id is string => id !== null);
-
-        const shuffledPropertyIds = shuffleArray(propertyIds);
-        const affectedIndices: number[] = [];
-
         for (let i = 0; i < affectedTiles.length; i++) {
-          const tile = affectedTiles[i];
-          affectedIndices.push(tile.boardIndex);
-
           await tx.matchTile.update({
-            where: { id: tile.id },
+            where: { id: affectedTiles[i].id },
             data: {
               propertyId: shuffledPropertyIds[i] || null,
               ownerId: null,
@@ -252,61 +340,26 @@ export async function POST(request: Request) {
             },
           });
         }
-
-        await logGameEvent(
-          match.id,
-          match.inviteCode,
-          `💀 ${player.name} defaulted on their loan and went bankrupt! ${affectedIndices.length} tiles reshuffled.`,
-          "bankrupt"
-        );
-
-        await serverBroadcast(match.inviteCode, {
-          type: "bankruptcy-shuffle",
-          payload: {
-            bankruptPlayerId: playerId,
-            creditorId: "bank",
-            paidAmount: player.cash,
-            affectedIndices,
-          },
-        });
-
-        await serverBroadcast(match.inviteCode, {
-          type: "player-bankrupt",
-          payload: { playerId },
-        });
-      });
-
-      // Check if game is over (only 1 active player left)
-      const activePlayers = match.players.filter(
-        (p) => !p.isBankrupt && p.id !== playerId
-      );
-
-      if (activePlayers.length === 1) {
-        const winner = activePlayers[0];
-        await prisma.match.update({
-          where: { id: matchId },
-          data: { status: "FINISHED", currentTurnId: null },
-        });
-        await logGameEvent(match.id, match.inviteCode, `🏆 ${winner.name} wins the game!`, "info");
-        await serverBroadcast(match.inviteCode, {
-          type: "game-over",
-          payload: { winnerId: winner.id, winnerName: winner.name },
-        });
-      } else {
-        // Advance turn if it was bankrupt player's turn
-        if (match.currentTurnId === playerId) {
-          const nextPlayers = activePlayers.sort((a, b) => a.turnOrder - b.turnOrder);
-          const nextPlayer = nextPlayers[0];
-          await prisma.match.update({
+        
+        if (isGameOver) {
+          await tx.match.update({
             where: { id: matchId },
-            data: { currentTurnId: nextPlayer.id },
+            data: { status: "FINISHED", currentTurnId: null },
           });
-          await serverBroadcast(match.inviteCode, {
-            type: "turn-changed",
-            payload: { currentTurnId: nextPlayer.id },
+        } else if (match.currentTurnId === playerId) {
+          await tx.match.update({
+            where: { id: matchId },
+            data: { currentTurnId: nextPlayerId },
           });
         }
-      }
+      });
+
+      const logsPromise = Promise.all([
+        logGameEvent(match.id, match.inviteCode, `💀 ${player.name} defaulted on their loan and went bankrupt! ${affectedIndices.length} tiles reshuffled.`, "bankrupt"),
+        isGameOver ? logGameEvent(match.id, match.inviteCode, `🏆 ${winner!.name} wins the game!`, "info") : Promise.resolve()
+      ]);
+
+      await Promise.all([dbPromise, logsPromise]);
 
 
       return NextResponse.json({ success: true, isBankrupt: true });
