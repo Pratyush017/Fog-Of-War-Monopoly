@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useGameStore } from "@/store/game-store";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { calculateNextActivePlayer, registerOptimisticAction } from "@/lib/game-engine";
+import TurnTimer from "./TurnTimer";
 
 const orientations: Record<number, { x: number; y: number }> = {
   1: { x: 0,    y: 0   },
@@ -88,7 +89,7 @@ function DiceCube({ value, rolling, spinId, index }: { value: number; rolling: b
 }
 
 export default function DiceRoller() {
-  const { dice, match, myPlayerId, pendingAction, setDice, autoRollRequested, setAutoRollRequested } = useGameStore();
+  const { dice, match, myPlayerId, pendingAction, setDice, clearDice, autoRollRequested, setAutoRollRequested } = useGameStore();
   const { playRoll, playJail } = useGameSounds();
   const [fetching, setFetching] = useState(false);
   const [spinId, setSpinId] = useState(0);
@@ -155,7 +156,7 @@ export default function DiceRoller() {
 
       if (data.requiresJailDecision) {
         setIsRolling(false);
-        setDice(null); // Stop rolling animation if they actually couldn't roll
+        clearDice(); // Stop rolling animation if they actually couldn't roll
         useGameStore.getState().setPendingAction({ type: "jail-choice" });
         return;
       }
@@ -328,6 +329,11 @@ export default function DiceRoller() {
         {(!dice || rolling || dice.total === 0) && (
           <div className="h-8" />
         )}
+
+        <div className="flex justify-center w-full mb-2">
+          <TurnTimer />
+        </div>
+
         {/* Actions row */}
         {isMyTurn && (
           <div className="flex flex-col items-center gap-4">

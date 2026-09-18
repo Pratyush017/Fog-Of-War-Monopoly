@@ -8,7 +8,6 @@ import LoanModal from "./LoanModal";
 import LiquidationModal from "./LiquidationModal";
 import TradePlayerSelectModal from "./TradePlayerSelectModal";
 import TradeNegotiationModal from "./TradeNegotiationModal";
-import TurnTimer from "./TurnTimer";
 
 const getAvatarImage = (id: string | null) => {
   if (!id) return <span className="text-xl">🎩</span>;
@@ -94,10 +93,8 @@ export default function PlayerHUD() {
       {/* Top Header */}
       <div className="bg-[#362719] px-5 py-4 flex items-center justify-between shrink-0">
         <h1 className="text-[17px] font-black tracking-widest text-[#dfd5c5] uppercase font-serif drop-shadow-sm hidden sm:block">Fog of War</h1>
-        <div className="flex items-center gap-4 ml-auto">
-          <TurnTimer />
-          <div className="flex items-center gap-2">
-            <span className="text-[10px] text-[#9a8875] font-bold tracking-widest uppercase">ROOM</span>
+        <div className="flex items-center gap-2 ml-auto">
+          <span className="text-[10px] text-[#9a8875] font-bold tracking-widest uppercase">ROOM</span>
           <div 
             className="flex items-center bg-[#1d2729] rounded border border-[#2b3a3d] overflow-hidden shadow-inner cursor-pointer group" 
             onClick={() => match?.inviteCode && navigator.clipboard.writeText(match.inviteCode)} 
@@ -110,7 +107,6 @@ export default function PlayerHUD() {
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </div>
-          </div>
           </div>
         </div>
       </div>
