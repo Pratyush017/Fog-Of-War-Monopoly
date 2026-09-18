@@ -143,7 +143,7 @@ export async function POST(request: Request) {
     );
 
     const serverReceivedTime = Date.now();
-    const playersDelta = [{
+    const playersDelta: any[] = [{
       id: playerId,
       cash: player.cash + principal,
       loanType,
