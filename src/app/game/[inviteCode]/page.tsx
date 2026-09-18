@@ -387,24 +387,30 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
 
         case "chance-card":
         case "chest-card": {
-          const cardPlayer = currentPlayers.find((p) => p.id === event.payload.playerId);
           // Local player already showed the card via DiceRoller optimistic handling
           if (event.payload.playerId !== myPlayerIdRef.current) {
-            playNotification();
-            useGameStore.getState().setActionCardReveal({
-              type: event.type === "chance-card" ? "CHANCE" : "CHEST",
-              description: event.payload.description,
-            });
+            // Wait for the dice to stop (550ms) + token to move (350ms)
+            setTimeout(() => {
+              playNotification();
+              useGameStore.getState().setActionCardReveal({
+                type: event.type === "chance-card" ? "CHANCE" : "CHEST",
+                description: event.payload.description,
+              });
+              fetchGameState();
+            }, 900);
+          } else {
+            fetchGameState();
           }
-          fetchGameState();
           break;
         }
 
         case "tax-paid": {
           setTimeout(() => {
-            const taxPayer = currentPlayers.find((p) => p.id === event.payload.playerId);
+            if (event.payload.playerId !== myPlayerIdRef.current) {
+              playNotification();
+            }
             fetchGameState();
-          }, 550);
+          }, 900);
           break;
         }
 

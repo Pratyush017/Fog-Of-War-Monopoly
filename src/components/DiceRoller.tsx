@@ -90,7 +90,7 @@ function DiceCube({ value, rolling, spinId, index }: { value: number; rolling: b
 
 export default function DiceRoller() {
   const { dice, match, myPlayerId, pendingAction, setDice, clearDice, autoRollRequested, setAutoRollRequested } = useGameStore();
-  const { playRoll, playJail } = useGameSounds();
+  const { playRoll, playJail, playNotification } = useGameSounds();
   const [fetching, setFetching] = useState(false);
   const [spinId, setSpinId] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
@@ -202,35 +202,39 @@ export default function DiceRoller() {
         store.updatePlayer(myPlayerId, { position: 10, inJail: true });
         playJail();
       }
-      // ── Handle CHANCE / CHEST: show card immediately ──
+      // ── Standard movement (start the CSS transition) ──
+      if (data.newPosition !== undefined && myPlayerId && tileType !== "GO_TO_JAIL") {
+        store.updatePlayer(myPlayerId, { position: data.newPosition });
+      }
+
+      // Short delay for token landing animation before showing action prompts or cards
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      // ── Handle Landing Effects NOW that the piece has landed ──
+      if (tileType === "TAX") {
+        playNotification();
+      } 
       else if ((tileType === "CHANCE" || tileType === "CHEST") && myPlayerId) {
-        // Move piece to the card tile
-        store.updatePlayer(myPlayerId, { position: landedAt });
-        // Show card reveal instantly (no waiting for broadcast)
         if (data.card) {
+          playNotification();
           store.setActionCardReveal({
             type: tileType === "CHANCE" ? "CHANCE" : "CHEST",
             description: data.card.description,
           });
-          // If the card sends to jail, animate the jail movement after a brief pause
+          
+          // If the card sends to jail, animate the jail movement after a brief pause so they can read the card
           if (data.card.effect === "jail") {
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 800));
             store.updatePlayer(myPlayerId, { position: 10, inJail: true });
+            playJail();
           }
           // If the card moves to a position, animate that
           else if (data.card.effect === "move" && data.card.moveTo !== undefined) {
-            await new Promise(resolve => setTimeout(resolve, 300));
+            await new Promise(resolve => setTimeout(resolve, 800));
             store.updatePlayer(myPlayerId, { position: data.card.moveTo });
           }
         }
       }
-      // ── Standard movement ──
-      else if (data.newPosition !== undefined && myPlayerId) {
-        store.updatePlayer(myPlayerId, { position: data.newPosition });
-      }
-
-      // Short delay for token landing animation before showing action prompts
-      await new Promise(resolve => setTimeout(resolve, 350));
 
       // We only queue the buy-prompt if it was returned
       if (res.ok && data.action === "buy-prompt") {
