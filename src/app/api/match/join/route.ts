@@ -82,6 +82,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       matchId: match.id,
+      inviteCode: match.inviteCode,
       playerId: player.id,
       playerName: player.name,
     });
