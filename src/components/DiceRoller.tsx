@@ -126,6 +126,20 @@ export default function DiceRoller() {
     
     (window as any)._lastAction.local = performance.now();
 
+    // Optimistically start the dice spin animation immediately!
+    setSpinId(Date.now());
+    playRoll();
+    setDice({
+      die1: Math.floor(Math.random() * 6) + 1,
+      die2: Math.floor(Math.random() * 6) + 1,
+      total: 0,
+      isDoubles: false,
+      rolling: true
+    });
+
+    // Record the time we started the fetch so we can guarantee a minimum animation duration
+    const fetchStartTime = Date.now();
+
     try {
       const res = await fetch("/api/game/roll", {
         method: "POST",
@@ -141,15 +155,14 @@ export default function DiceRoller() {
 
       if (data.requiresJailDecision) {
         setIsRolling(false);
+        setDice(null); // Stop rolling animation if they actually couldn't roll
         useGameStore.getState().setPendingAction({ type: "jail-choice" });
         return;
       }
       
-      // We got the real results! NOW start the spin animation.
+      // We got the real results! Update the rolling dice with the actual values
+      // (They keep spinning, but now we know what they will land on)
       if (data.dice) {
-        setSpinId(Date.now());
-        playRoll();
-        
         setDice({ 
           die1: data.dice.die1, 
           die2: data.dice.die2, 
@@ -162,8 +175,11 @@ export default function DiceRoller() {
         useGameStore.getState().updateMatch({ hasRolled: !data.dice.isDoubles });
       }
 
-      // Wait exactly 800ms for the animation to play out
-      await new Promise(resolve => setTimeout(resolve, 800));
+      // Guarantee the animation plays for AT LEAST 800ms total
+      const elapsed = Date.now() - fetchStartTime;
+      if (elapsed < 800) {
+        await new Promise(resolve => setTimeout(resolve, 800 - elapsed));
+      }
       
       setIsRolling(false);
       

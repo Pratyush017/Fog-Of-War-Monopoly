@@ -35,6 +35,13 @@ export default function TurnTimer() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ matchId: match.id, playerId: activePlayer?.id, action: "BANKRUPTCY", seizerId: myPlayerId }),
         });
+      } else if (!match.hasRolled) {
+        // Force roll for the active player if they timed out before rolling
+        await fetch("/api/game/roll", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId: match.id, playerId: myPlayerId, isAutoRoll: true }),
+        });
       } else {
         await fetch("/api/game/end-turn", {
           method: "POST",

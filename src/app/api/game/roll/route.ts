@@ -20,8 +20,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid match" }, { status: 400 });
     }
 
+    let targetPlayerId = playerId;
+
     if (match.currentTurnId !== playerId) {
-      return NextResponse.json({ error: "Not your turn" }, { status: 403 });
+      if (isAutoRoll && match.turnEndsAt && new Date() > match.turnEndsAt) {
+        targetPlayerId = match.currentTurnId;
+      } else {
+        return NextResponse.json({ error: "Not your turn" }, { status: 403 });
+      }
     }
 
     if (match.hasRolled) {
@@ -32,7 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Turn time expired" }, { status: 403 });
     }
 
-    const player = match.players.find((p) => p.id === playerId);
+    const player = match.players.find((p) => p.id === targetPlayerId);
     if (!player || player.isBankrupt) {
       return NextResponse.json({ error: "Invalid player" }, { status: 400 });
     }
