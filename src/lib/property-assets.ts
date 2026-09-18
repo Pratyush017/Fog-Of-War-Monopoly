@@ -1,14 +1,4 @@
 import {
-  Building,
-  TrainFront,
-  Zap,
-  Droplets,
-  Waves,
-  Castle,
-  Home,
-  Tent,
-  Trees,
-  Gem,
   type LucideIcon
 } from "lucide-react";
 

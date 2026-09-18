@@ -3,11 +3,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useGameStore } from "@/store/game-store";
 import { calculatePlayerNetWorth } from "@/lib/game-engine";
+import dynamic from "next/dynamic";
 import EventLog from "./EventLog";
-import LoanModal from "./LoanModal";
-import LiquidationModal from "./LiquidationModal";
-import TradePlayerSelectModal from "./TradePlayerSelectModal";
-import TradeNegotiationModal from "./TradeNegotiationModal";
+
+const LoanModal = dynamic(() => import("./LoanModal"), { ssr: false });
+const LiquidationModal = dynamic(() => import("./LiquidationModal"), { ssr: false });
+const TradePlayerSelectModal = dynamic(() => import("./TradePlayerSelectModal"), { ssr: false });
+const TradeNegotiationModal = dynamic(() => import("./TradeNegotiationModal"), { ssr: false });
 
 const getAvatarImage = (id: string | null) => {
   if (!id) return <span className="text-xl">🎩</span>;
@@ -271,9 +273,9 @@ export default function PlayerHUD() {
               {/* Initiate Trade Button */}
               <button 
                 onClick={() => setIsTradeSelectOpen(true)}
-                disabled={!isMyTurn || (me?.isLiquidating ?? false) || (me?.isBankrupt ?? false)}
+                disabled={!isMyTurn || (me?.isLiquidating ?? false) || (me?.isBankrupt ?? false) || ((me?.debtAmount ?? 0) > 0) || ((me?.loanPrincipal ?? 0) > 0)}
                 className={`w-full group px-3 py-2.5 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm ${
-                  isMyTurn && !me?.isLiquidating && !me?.isBankrupt
+                  isMyTurn && !me?.isLiquidating && !me?.isBankrupt && !((me?.debtAmount ?? 0) > 0) && !((me?.loanPrincipal ?? 0) > 0)
                     ? "bg-[#dbe5f0] border-[#a3bdd6] hover:bg-[#cddbec] active:scale-[0.98]" 
                     : "bg-[#dbe5f0]/60 border-[#a3bdd6]/60 opacity-60 cursor-not-allowed"
                 }`}
@@ -285,7 +287,9 @@ export default function PlayerHUD() {
                     <line x1="21" y1="3" x2="14" y2="10"/>
                     <line x1="3" y1="21" x2="10" y2="14"/>
                   </svg>
-                  <span className="text-[12px] font-bold text-[#1a1a1a]">Initiate Trade</span>
+                  <span className="text-[12px] font-bold text-[#1a1a1a]">
+                    {((me?.debtAmount ?? 0) > 0) || ((me?.loanPrincipal ?? 0) > 0) ? "Trade Locked (Debt/Loan)" : "Initiate Trade"}
+                  </span>
                 </div>
                 <span className="text-[10px] font-bold px-2 py-1 rounded-[6px] bg-[#c4d5e6] text-[#2c5e8a] border border-[#a3bdd6] uppercase tracking-wider">
                   DEAL

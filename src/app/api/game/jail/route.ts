@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serverBroadcast } from "@/lib/supabase-channels";
 import { logGameEvent } from "@/lib/logger";
-import { rollDice } from "@/lib/game-engine";
 
 export async function POST(request: Request) {
   try {
@@ -52,8 +51,7 @@ export async function POST(request: Request) {
         serverBroadcast(match.inviteCode, {
           type: "jail-freed",
           payload: { playerId },
-        }),
-        serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} })
+        })
       ]);
 
       return NextResponse.json({ freed: true, action: "roll-now" });

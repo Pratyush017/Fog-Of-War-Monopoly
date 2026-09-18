@@ -123,8 +123,7 @@ export async function POST(request: Request) {
           newIsMortgaged,
           newOwnerId,
         },
-      }),
-      serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} })
+      })
     ]);
 
     return NextResponse.json({

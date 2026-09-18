@@ -143,7 +143,6 @@ export async function POST(request: Request) {
           },
         });
 
-        await serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} });
 
         // DO NOT end the turn!
         return NextResponse.json({

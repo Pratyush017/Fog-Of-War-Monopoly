@@ -75,16 +75,16 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
     if (tile.ownerId === hoveredPlayerId) {
       playerHoverClass = "ring-4 ring-white z-40 scale-[1.08] shadow-[0_0_20px_rgba(255,255,255,0.4)] brightness-110";
     } else {
-      playerHoverClass = "opacity-30 grayscale blur-[1px]";
+      playerHoverClass = "opacity-30 grayscale ";
     }
   }
 
   if (isCorner) {
     const data = CORNER_DATA[tile.tileType] || { label: tile.tileType, color: "bg-transparent", html: `<span>${tile.tileType}</span>` };
-    const dimClass = hoveredPlayerId ? "opacity-30 grayscale transition-all duration-300" : "";
+    const dimClass = hoveredPlayerId ? "opacity-30 grayscale transition-[transform,opacity,filter] duration-300" : "";
     return (
       <div 
-        className={`w-full h-full tile-parchment flex flex-col items-center justify-center p-1 text-center relative group cursor-pointer transition-all duration-200 hover:scale-[1.05] hover:z-50 hover:shadow-2xl ${tile.tileType === 'GO_TO_JAIL' ? 'border-t-2 border-r-2 border-red-900/30' : ''} ${dimClass}`}
+        className={`w-full h-full tile-parchment flex flex-col items-center justify-center p-1 text-center relative group cursor-pointer transition-[transform,opacity,filter] duration-200 hover:scale-[1.05] hover:z-50  ${tile.tileType === 'GO_TO_JAIL' ? 'border-t-2 border-r-2 border-red-900/30' : ''} ${dimClass}`}
       >
         <div dangerouslySetInnerHTML={{ __html: data.html }} className="flex flex-col items-center justify-center" />
       </div>
@@ -100,7 +100,7 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
       const utilityEmoji = isWater ? "💧" : "⚡";
       const cleanName = tile.property?.name?.replace(/[💧⚡]/g, "").trim() || 'Utility';
       return (
-        <div className={`w-full h-full tile-parchment bg-[#2c362f] border-2 border-[#4b6d4d] flex flex-col items-center justify-center p-1 text-center relative cursor-pointer transition-all duration-300 hover:scale-[1.05] hover:z-50 hover:shadow-2xl ${playerHoverClass}`} onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}>
+        <div className={`w-full h-full tile-parchment bg-[#2c362f] border-2 border-[#4b6d4d] flex flex-col items-center justify-center p-1 text-center relative cursor-pointer transition-[transform,opacity,filter] duration-300 hover:scale-[1.05] hover:z-50  ${playerHoverClass}`} onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}>
           <div className="w-5 h-5 rounded-full bg-[#1b251e] border border-[#64936a] flex items-center justify-center text-[10px] text-amber-300 shadow-sm">
             {utilityEmoji}
           </div>
@@ -113,11 +113,11 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
     }
     
     // Dim Chance/Chest/Tax when a player is hovered
-    const nonPropHoverDim = hoveredPlayerId ? "opacity-30 grayscale blur-[1px] transition-all duration-300" : "";
+    const nonPropHoverDim = hoveredPlayerId ? "opacity-30 grayscale  transition-[transform,opacity,filter] duration-300" : "";
 
     return (
       <div 
-        className={`w-full h-full flex items-center justify-center cursor-pointer relative transition-all duration-200 hover:scale-[1.05] hover:z-50 hover:shadow-2xl ${data.class} ${nonPropHoverDim}`}
+        className={`w-full h-full flex items-center justify-center cursor-pointer relative transition-[transform,opacity,filter] duration-200 hover:scale-[1.05] hover:z-50  ${data.class} ${nonPropHoverDim}`}
         onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}
       >
         {data.label}
@@ -130,10 +130,10 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
   
   // Fog of war state
   if (!tile.isRevealed) {
-    const dimClass = hoveredPlayerId ? "opacity-30 grayscale transition-all duration-300" : "";
+    const dimClass = hoveredPlayerId ? "opacity-30 grayscale transition-[transform,opacity,filter] duration-300" : "";
     return (
       <div 
-        className={`w-full h-full tile-parchment flex items-center justify-center font-bold text-lg sm:text-2xl text-stone-600/75 cursor-pointer relative transition-all duration-200 hover:scale-[1.05] hover:z-50 hover:shadow-2xl ${dimClass}`}
+        className={`w-full h-full tile-parchment flex items-center justify-center font-bold text-lg sm:text-2xl text-stone-600/75 cursor-pointer relative transition-[transform,opacity,filter] duration-200 hover:scale-[1.05] hover:z-50  ${dimClass}`}
         onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}
       >
         ?
@@ -216,7 +216,7 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
   return (
     <div
       onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}
-      className={`w-full h-full flex flex-col items-center justify-center relative p-1 cursor-pointer overflow-visible transition-all duration-300 hover:scale-[1.05] hover:z-50 hover:shadow-2xl ${borderStyle} ${mortgagedFilter} ${setHoverClass} ${playerHoverClass}`}
+      className={`w-full h-full flex flex-col items-center justify-center relative p-1 cursor-pointer overflow-visible transition-[transform,opacity,filter] duration-300 hover:scale-[1.05] hover:z-50  ${borderStyle} ${mortgagedFilter} ${setHoverClass} ${playerHoverClass}`}
       style={combinedStyle}
     >
       {/* Edge-Overlapping Flag or Icon */}

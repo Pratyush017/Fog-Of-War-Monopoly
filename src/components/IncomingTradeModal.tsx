@@ -81,7 +81,9 @@ export default function IncomingTradeModal() {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
+if (process.env.NODE_ENV !== 'production') {
       console.log(`[TIMELINE: TRADE RESPOND] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+    }
 
       if (accepted) {
         if (!res.ok) {
@@ -218,14 +220,14 @@ export default function IncomingTradeModal() {
 
           <button
             onClick={() => handleRespond(true)}
-            disabled={loading !== null}
+            disabled={loading !== null || ((players.find(p => p.id === myPlayerId)?.debtAmount ?? 0) > 0) || ((players.find(p => p.id === myPlayerId)?.loanPrincipal ?? 0) > 0) || ((offeringPlayer?.debtAmount ?? 0) > 0) || ((offeringPlayer?.loanPrincipal ?? 0) > 0)}
             className="flex-1 py-3.5 px-6 rounded-xl bg-[#2e6836] hover:bg-[#23532a] active:scale-[0.98] text-white font-black text-sm uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {loading === "accept" ? (
               "Accepting Deal..."
             ) : (
               <>
-                <span>Accept Trade Deal</span>
+                <span>{(((players.find(p => p.id === myPlayerId)?.debtAmount ?? 0) > 0) || ((players.find(p => p.id === myPlayerId)?.loanPrincipal ?? 0) > 0) || ((offeringPlayer?.debtAmount ?? 0) > 0) || ((offeringPlayer?.loanPrincipal ?? 0) > 0)) ? "LOCKED" : "Accept Trade Deal"}</span>
                 <span className="text-lg">✓</span>
               </>
             )}

@@ -79,7 +79,6 @@ export async function POST(request: Request) {
         },
       });
 
-      await serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} });
 
       return NextResponse.json({
         success: true,
@@ -145,7 +144,6 @@ export async function POST(request: Request) {
         },
       });
 
-      await serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} });
 
       return NextResponse.json({
         success: true,
@@ -199,7 +197,6 @@ export async function POST(request: Request) {
         payload: { playerId },
       });
 
-      await serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} });
 
       return NextResponse.json({
         success: true,
@@ -311,7 +308,6 @@ export async function POST(request: Request) {
         }
       }
 
-      await serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} });
 
       return NextResponse.json({ success: true, isBankrupt: true });
     }

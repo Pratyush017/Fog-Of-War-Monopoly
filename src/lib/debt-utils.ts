@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client";
+import { calculatePlayerNetWorth } from "@/lib/game-engine";
 
 /**
  * Intercepts cash inflow for a player and routes it to their creditor if they are in debt.
@@ -74,10 +75,7 @@ export async function resolveForcedBankruptcy(
 
   // 2. Compute net worth (base price only)
   // net worth = cash + sum(property.price)
-  const propertiesValue = ownedTiles.reduce((sum, t) => {
-    return sum + (t.property?.price || 0);
-  }, 0);
-  const netWorth = Math.max(0, player.cash + propertiesValue);
+  const netWorth = Math.max(0, calculatePlayerNetWorth(player.cash, ownedTiles));
   
   const paymentToCreditor = Math.min(netWorth, player.debtAmount);
   

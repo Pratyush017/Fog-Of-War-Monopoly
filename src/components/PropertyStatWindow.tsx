@@ -141,7 +141,9 @@ export default function PropertyStatWindow() {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
+if (process.env.NODE_ENV !== 'production') {
       console.log(`[TIMELINE: PROPERTY ${action}] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+    }
 
       if (!res.ok) {
         // Rollback

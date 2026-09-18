@@ -56,11 +56,11 @@ export default function ActionPanel() {
   const handleBuy = useCallback(async () => {
     if (!match || !myPlayerId || !pendingAction || pendingAction.type !== "buy-prompt") return;
     
-    const actionId = `buy-${Date.now()}`;
+    const actionId = registerOptimisticAction("buy");
     const start = performance.now();
-    (window as any)._lastAction = { type: 'buy', start, actionId };
-    (window as any)._processedActions = (window as any)._processedActions || new Set();
-    (window as any)._processedActions.add(actionId);
+    if (process.env.NODE_ENV !== 'production') {
+      (window as any)._lastAction = { type: 'buy', start, actionId };
+    }
     
     const store = useGameStore.getState();
     const myPlayer = store.players.find(p => p.id === myPlayerId);
@@ -118,7 +118,9 @@ export default function ActionPanel() {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
+if (process.env.NODE_ENV !== 'production') {
       console.log(`[TIMELINE: BUY] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+    }
       
       if (!res.ok) {
         // Rollback
@@ -175,7 +177,9 @@ export default function ActionPanel() {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
+if (process.env.NODE_ENV !== 'production') {
       console.log(`[TIMELINE: PASS] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+    }
 
       if (!res.ok) {
         // Rollback
@@ -236,7 +240,9 @@ export default function ActionPanel() {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
+if (process.env.NODE_ENV !== 'production') {
       console.log(`[TIMELINE: JAIL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+    }
 
       if (!res.ok) {
         // Rollback

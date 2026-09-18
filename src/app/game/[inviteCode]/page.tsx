@@ -116,6 +116,14 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
     }
   }, [inviteCode, router, setMatch, setPlayers, setTiles, setMyPlayerId, setEventLog]);
 
+  const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debouncedFetchGameState = useCallback(() => {
+    if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
+    fetchTimeoutRef.current = setTimeout(() => {
+      fetchGameState();
+    }, 50);
+  }, [fetchGameState]);
+
   useEffect(() => {
     useGameStore.getState().resetStore();
     fetchGameState();
@@ -127,7 +135,9 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
       const a = (window as any)._lastAction;
       if (a) {
         const echo = performance.now();
-        console.log(`[TIMELINE: ECHO] Event received (${event.type}). Click -> Echo: ${(echo - a.start).toFixed(2)}ms`);
+if (process.env.NODE_ENV !== 'production') {
+      console.log(`[TIMELINE: ECHO] Event received (${event.type}). Click -> Echo: ${(echo - a.start).toFixed(2)}ms`);
+    }
       }
       
       const win = window as any;
@@ -175,7 +185,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         case "game-started":
           updateMatch({ status: "PLAYING", currentTurnId: event.payload.currentTurnId, turnEndsAt: event.payload.turnEndsAt, hasRolled: event.payload.hasRolled });
           
-          fetchGameState(); // Refresh full state
+          debouncedFetchGameState(); // Refresh full state
           break;
 
         case "new-log": {
@@ -273,7 +283,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           }
 
           // Re-fetch to get accurate property data
-          fetchGameState();
+          debouncedFetchGameState();
           
           break;
         }
@@ -286,7 +296,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           const payer = currentPlayers.find((p) => p.id === event.payload.payerId);
           const owner = currentPlayers.find((p) => p.id === event.payload.ownerId);
           
-          fetchGameState(); // Refresh cash
+          debouncedFetchGameState(); // Refresh cash
           break;
         }
 
@@ -334,7 +344,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           const winner = currentPlayers.find((p) => p.id === event.payload.winnerId);
           resetAuction();
           
-          fetchGameState();
+          debouncedFetchGameState();
           break;
         }
 
@@ -350,7 +360,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         case "jail-paid": {
           const jailee = currentPlayers.find((p) => p.id === event.payload.playerId);
           
-          fetchGameState();
+          debouncedFetchGameState();
           break;
         }
 
@@ -362,7 +372,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         case "turn-changed":
           updateMatch({ currentTurnId: event.payload.currentTurnId, turnEndsAt: event.payload.turnEndsAt, hasRolled: event.payload.hasRolled });
           setPendingAction(null);
-          fetchGameState(); // Sync all state
+          debouncedFetchGameState(); // Sync all state
           break;
 
         case "bankruptcy-shuffle": {
@@ -375,7 +385,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           setShufflingTiles(event.payload.affectedIndices);
           setTimeout(() => {
             setShufflingTiles([]);
-            fetchGameState(); // Refresh board after animation
+            debouncedFetchGameState(); // Refresh board after animation
           }, 1500);
           break;
         }
@@ -396,10 +406,10 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
                 type: event.type === "chance-card" ? "CHANCE" : "CHEST",
                 description: event.payload.description,
               });
-              fetchGameState();
+              debouncedFetchGameState();
             }, 900);
           } else {
-            fetchGameState();
+            debouncedFetchGameState();
           }
           break;
         }
@@ -409,7 +419,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             if (event.payload.playerId !== myPlayerIdRef.current) {
               playNotification();
             }
-            fetchGameState();
+            debouncedFetchGameState();
           }, 900);
           break;
         }
@@ -434,7 +444,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         case "loan-repaid":
         case "liquidation-started":
         case "liquidation-completed":
-          fetchGameState();
+          debouncedFetchGameState();
           break;
 
         case "trade-offer":
@@ -457,7 +467,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             });
           }
           playNotification();
-          fetchGameState();
+          debouncedFetchGameState();
           break;
 
         case "trade-declined":
@@ -468,11 +478,11 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
 
         case "trade-voided":
           alert(`Trade could not be completed: ${event.payload.reason}`);
-          fetchGameState();
+          debouncedFetchGameState();
           break;
 
         case "state-sync":
-          fetchGameState();
+          debouncedFetchGameState();
           break;
 
         default:
@@ -480,7 +490,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [fetchGameState]
+    [debouncedFetchGameState, fetchGameState]
   );
 
   // Subscribe to realtime events

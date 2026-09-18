@@ -152,7 +152,9 @@ export default function DiceRoller() {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
+if (process.env.NODE_ENV !== 'production') {
       console.log(`[TIMELINE: ROLL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+    }
 
       if (data.requiresJailDecision) {
         setIsRolling(false);

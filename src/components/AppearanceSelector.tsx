@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 
 export interface AvatarOption {

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AVATARS, AvatarOption } from "@/components/AppearanceSelector";
+import { AVATARS } from "@/components/AppearanceSelector";
 
 const avatarKeys = Object.keys(AVATARS);
 

@@ -39,20 +39,20 @@ export async function POST(request: Request) {
     }
 
     // ── TRADE LOCK ENFORCEMENT ──
-    // If a player has an active loan (loanPrincipal > 0), they cannot add properties to a trade offer. They may only trade cash.
-    if (offeringPlayer.loanPrincipal > 0 && offeredPropertyTileIds.length > 0) {
+    // If a player has an active loan or debt (loanPrincipal > 0), they cannot add properties to a trade offer. They may only trade cash.
+    if ((offeringPlayer.loanPrincipal > 0 || offeringPlayer.debtAmount > 0) && offeredPropertyTileIds.length > 0) {
       return NextResponse.json(
         {
-          error: "Trade Lock Active: Players with an outstanding loan cannot trade properties! You may only trade cash.",
+          error: "Trade Lock Active: Players with an outstanding loan or debt cannot trade properties! You may only trade cash.",
         },
         { status: 403 }
       );
     }
 
-    if (targetPlayer.loanPrincipal > 0 && requestedPropertyTileIds.length > 0) {
+    if ((targetPlayer.loanPrincipal > 0 || targetPlayer.debtAmount > 0) && requestedPropertyTileIds.length > 0) {
       return NextResponse.json(
         {
-          error: "Trade Lock Active: Target player has an active loan and cannot trade away properties.",
+          error: "Trade Lock Active: Target player has an active loan or debt and cannot trade away properties.",
         },
         { status: 403 }
       );
@@ -120,7 +120,6 @@ export async function POST(request: Request) {
       "info"
     );
 
-    await serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} });
 
     return NextResponse.json({ success: true });
   } catch (error) {

@@ -222,8 +222,7 @@ export async function POST(request: Request) {
           summary: summaryStr,
           completedSets,
         },
-      }),
-      serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} })
+      })
     ]);
 
     return NextResponse.json({
