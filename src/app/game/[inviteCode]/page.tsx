@@ -419,10 +419,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
                 type: event.type === "chance-card" ? "CHANCE" : "CHEST",
                 description: event.payload.description,
               });
-              if (!event.delta) debouncedFetchGameState();
             }, 900);
-          } else {
-            if (!event.delta) debouncedFetchGameState();
           }
           break;
         }
@@ -432,7 +429,6 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             if (event.payload.playerId !== myPlayerIdRef.current) {
               playNotification();
             }
-            if (!event.delta) debouncedFetchGameState();
           }, 900);
           break;
         }
@@ -457,7 +453,6 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         case "loan-repaid":
         case "liquidation-started":
         case "liquidation-completed":
-          if (!event.delta) debouncedFetchGameState();
           break;
 
         case "trade-offer":
@@ -480,7 +475,6 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             });
           }
           playNotification();
-          if (!event.delta) debouncedFetchGameState();
           break;
 
         case "trade-declined":
