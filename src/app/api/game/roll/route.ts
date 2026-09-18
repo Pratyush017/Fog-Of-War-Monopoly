@@ -161,10 +161,7 @@ export async function POST(request: Request) {
           delta: {
             players: [{
               id: playerId,
-              position: newPosition,
-              cash: player.cash + cashChange,
-              inJail: landedTile.tileType === "GO_TO_JAIL" ? true : player.inJail,
-              jailTurns: landedTile.tileType === "GO_TO_JAIL" ? 0 : player.jailTurns
+              cash: player.cash + cashChange
             }]
           }
         });
@@ -216,6 +213,9 @@ export async function POST(request: Request) {
             await serverBroadcast(match.inviteCode, {
               type: "tax-paid",
               payload: { playerId, amount: taxAmount },
+              delta: {
+                players: [{ id: playerId, cash: player.cash + cashChange - taxAmount }]
+              }
             });
             break;
           }
@@ -223,12 +223,17 @@ export async function POST(request: Request) {
           case "CHANCE": {
             // Use the pre-drawn card (drawn synchronously before after())
             const chanceCard = drawnCard!;
-            await applyCardEffect(match.id, match.inviteCode, playerId, chanceCard as any, match.players);
+            // Pass updated cash (after Go bonus) so delta computation is accurate
+            const playersWithUpdatedCash = match.players.map(p => 
+              p.id === playerId ? { ...p, cash: player.cash + cashChange } : p
+            );
+            const chanceDeltas = await applyCardEffect(match.id, match.inviteCode, playerId, chanceCard as any, playersWithUpdatedCash);
             await logGameEvent(match.id, match.inviteCode, `${player.name}: ${chanceCard.description}`, "card");
             await serverBroadcast(match.inviteCode, {
               actionId,
               type: "chance-card",
               payload: { playerId, description: chanceCard.description, effect: chanceCard.effect },
+              delta: { players: chanceDeltas }
             });
             break;
           }
@@ -236,12 +241,16 @@ export async function POST(request: Request) {
           case "CHEST": {
             // Use the pre-drawn card (drawn synchronously before after())
             const chestCard = drawnCard!;
-            await applyCardEffect(match.id, match.inviteCode, playerId, chestCard as any, match.players);
+            const chestPlayersWithUpdatedCash = match.players.map(p => 
+              p.id === playerId ? { ...p, cash: player.cash + cashChange } : p
+            );
+            const chestDeltas = await applyCardEffect(match.id, match.inviteCode, playerId, chestCard as any, chestPlayersWithUpdatedCash);
             await logGameEvent(match.id, match.inviteCode, `${player.name}: ${chestCard.description}`, "card");
             await serverBroadcast(match.inviteCode, {
               actionId,
               type: "chest-card",
               payload: { playerId, description: chestCard.description, effect: chestCard.effect },
+              delta: { players: chestDeltas }
             });
             break;
           }
@@ -398,22 +407,25 @@ async function applyCardEffect(
   inviteCode: string,
   playerId: string,
   card: CardEffect,
-  players: { id: string; isBankrupt: boolean }[]
-) {
+  players: { id: string; cash?: number; isBankrupt: boolean }[]
+): Promise<any[]> {
+  const callerPlayer = players.find(p => p.id === playerId);
+  const baseCash = callerPlayer?.cash ?? 0;
+
   switch (card.effect) {
     case "gain":
       await prisma.player.update({
         where: { id: playerId },
         data: { cash: { increment: card.amount! } },
       });
-      break;
+      return [{ id: playerId, cash: baseCash + card.amount! }];
     case "lose":
       await prisma.player.update({
         where: { id: playerId },
         data: { cash: { decrement: card.amount! } },
       });
-      break;
-    case "move":
+      return [{ id: playerId, cash: baseCash - card.amount! }];
+    case "move": {
       if (card.moveTo !== undefined) {
         const player = await prisma.player.findUnique({ where: { id: playerId } });
         const passedGo = card.moveTo < (player?.position ?? 0) && card.moveTo !== 0;
@@ -432,29 +444,31 @@ async function applyCardEffect(
           await serverBroadcast(inviteCode, {
             type: "go-collect",
             payload: { playerId, amount: cashChange },
-            delta: { players: [{ id: playerId, cash: (player?.cash ?? 0) + cashChange }] }
           });
         }
+        // Don't include position in delta — DiceRoller handles local player animation,
+        // and the case handler sets position for opponents. Including it causes slingshot.
         await serverBroadcast(inviteCode, {
           type: "player-moved",
           payload: { playerId, from: player?.position ?? 0, to: card.moveTo, passedGo },
-          delta: { players: [{ id: playerId, position: card.moveTo }] }
         });
+        return [{ id: playerId, cash: (player?.cash ?? 0) + cashChange }];
       }
-      break;
-      case "jail":
-        await prisma.player.update({
-          where: { id: playerId },
-          data: { position: 10, inJail: true, jailTurns: 0 },
-        });
-        const jailedPlayer = await prisma.player.findUnique({ where: { id: playerId } });
-        await logGameEvent(matchId, inviteCode, `${jailedPlayer?.name || "Player"} went to Jail! 🔒`, "jail");
-        await serverBroadcast(inviteCode, {
-          type: "jail-entered",
-          payload: { playerId },
-        });
-        break;
-    case "collect-from-all":
+      return [];
+    }
+    case "jail":
+      await prisma.player.update({
+        where: { id: playerId },
+        data: { position: 10, inJail: true, jailTurns: 0 },
+      });
+      const jailedPlayer = await prisma.player.findUnique({ where: { id: playerId } });
+      await logGameEvent(matchId, inviteCode, `${jailedPlayer?.name || "Player"} went to Jail! 🔒`, "jail");
+      await serverBroadcast(inviteCode, {
+        type: "jail-entered",
+        payload: { playerId },
+      });
+      return [{ id: playerId, cash: baseCash }];
+    case "collect-from-all": {
       const activePlayers = players.filter((p) => !p.isBankrupt && p.id !== playerId);
       const totalCollected = card.amount! * activePlayers.length;
       await prisma.$transaction([
@@ -469,8 +483,12 @@ async function applyCardEffect(
           data: { cash: { increment: totalCollected } },
         }),
       ]);
-      break;
-    case "pay-all":
+      return [
+        { id: playerId, cash: baseCash + totalCollected },
+        ...activePlayers.map(p => ({ id: p.id, cash: (p.cash ?? 0) - card.amount! }))
+      ];
+    }
+    case "pay-all": {
       const otherPlayers = players.filter((p) => !p.isBankrupt && p.id !== playerId);
       const totalPaid = card.amount! * otherPlayers.length;
       await prisma.$transaction([
@@ -485,7 +503,13 @@ async function applyCardEffect(
           })
         ),
       ]);
-      break;
+      return [
+        { id: playerId, cash: baseCash - totalPaid },
+        ...otherPlayers.map(p => ({ id: p.id, cash: (p.cash ?? 0) + card.amount! }))
+      ];
+    }
+    default:
+      return [];
   }
 }
 
