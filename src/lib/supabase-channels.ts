@@ -37,7 +37,7 @@ export type GameEventPayload =
   | { type: "property-action"; payload: { playerId: string; boardIndex: number; action: string; newCash: number; newHouses: number; newIsMortgaged: boolean; newOwnerId: string | null } }
   | { type: "new-log"; payload: { id: string; matchId: string; message: string; type: string; createdAt: Date } }
   | { type: "trade-offer"; payload: TradeOfferPayload }
-  | { type: "trade-accepted"; payload: { tradeId: string; offeringPlayerId: string; targetPlayerId: string; summary: string } }
+  | { type: "trade-accepted"; payload: { tradeId: string; offeringPlayerId: string; targetPlayerId: string; summary: string; completedSets?: { colorSet: string, color: string }[] } }
   | { type: "trade-declined"; payload: { tradeId: string; offeringPlayerId: string; targetPlayerId: string; targetPlayerName: string } }
   | { type: "trade-voided"; payload: { tradeId: string; reason: string } };
 

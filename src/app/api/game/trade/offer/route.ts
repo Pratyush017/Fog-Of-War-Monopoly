@@ -52,16 +52,16 @@ export async function POST(request: Request) {
     }
 
     // ── 2. TRADE LOCK ENFORCEMENT ──
-    // Indebted players (loanPrincipal > 0) cannot offer properties, only cash.
-    if (offeringPlayer.loanPrincipal > 0 && offeredPropertyTileIds.length > 0) {
+    // Indebted players (loanPrincipal > 0 OR debtAmount > 0) cannot offer properties, only cash.
+    if ((offeringPlayer.loanPrincipal > 0 || offeringPlayer.debtAmount > 0) && offeredPropertyTileIds.length > 0) {
       return NextResponse.json(
-        { error: "Trade Lock Active: You have an active bank loan and cannot trade properties (cash only)!" },
+        { error: "Trade Lock Active: You are in debt and cannot trade properties (cash only)!" },
         { status: 403 }
       );
     }
-    if (targetPlayer.loanPrincipal > 0 && requestedPropertyTileIds.length > 0) {
+    if ((targetPlayer.loanPrincipal > 0 || targetPlayer.debtAmount > 0) && requestedPropertyTileIds.length > 0) {
       return NextResponse.json(
-        { error: `Trade Lock Active: ${targetPlayer.name} has an active bank loan and cannot trade properties!` },
+        { error: `Trade Lock Active: ${targetPlayer.name} is in debt and cannot trade properties!` },
         { status: 403 }
       );
     }

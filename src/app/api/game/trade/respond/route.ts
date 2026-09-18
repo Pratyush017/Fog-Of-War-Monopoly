@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serverBroadcast } from "@/lib/supabase-channels";
+import { interceptCashInflow } from "@/lib/debt-utils";
 import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
@@ -65,6 +66,7 @@ export async function POST(request: Request) {
 
     // ── 2. ACCEPT TRADE: ATOMIC TRANSACTION WITH RACE-CONDITION VERIFICATION ──
     let summaryStr = "";
+    let completedSets: { colorSet: string, color: string }[] = [];
 
     try {
       await prisma.$transaction(async (tx) => {
@@ -121,15 +123,8 @@ export async function POST(request: Request) {
         }
 
         // Execute Swaps
-        await tx.player.update({
-          where: { id: offeringPlayerId },
-          data: { cash: { increment: requestedCash - offeredCash } },
-        });
-
-        await tx.player.update({
-          where: { id: targetPlayerId },
-          data: { cash: { increment: offeredCash - requestedCash } },
-        });
+        await interceptCashInflow(tx, offeringPlayerId, requestedCash - offeredCash);
+        await interceptCashInflow(tx, targetPlayerId, offeredCash - requestedCash);
 
         for (const tileId of offeredPropertyTileIds) {
           await tx.matchTile.update({
@@ -144,6 +139,32 @@ export async function POST(request: Request) {
             data: { ownerId: offeringPlayerId },
           });
         }
+
+        // ── 3. Check for newly completed sets ──
+        const checkCompletion = (playerTileIds: string[], newOwnerId: string, ownerColor: string) => {
+          const colorSetsToCheck = new Set<string>();
+          for (const tileId of playerTileIds) {
+            const t = freshTiles.find((t) => t.id === tileId);
+            if (t?.property?.colorSet) colorSetsToCheck.add(t.property.colorSet);
+          }
+          
+          for (const colorSet of colorSetsToCheck) {
+            const allInSet = freshTiles.filter((t) => t.property?.colorSet === colorSet);
+            // Simulate the swap (since freshTiles is from before the update)
+            const ownedCount = allInSet.filter((t) => {
+              if (playerTileIds.includes(t.id)) return true; // Just acquired
+              if (t.ownerId === newOwnerId && !offeredPropertyTileIds.includes(t.id) && !requestedPropertyTileIds.includes(t.id)) return true; // Already owned and not traded away
+              return false;
+            }).length;
+            
+            if (ownedCount === allInSet.length && allInSet.length > 0) {
+              completedSets.push({ colorSet, color: ownerColor });
+            }
+          }
+        };
+
+        checkCompletion(offeredPropertyTileIds, targetPlayerId, freshTarget.color);
+        checkCompletion(requestedPropertyTileIds, offeringPlayerId, freshOffering.color);
 
         const offeredNames = freshTiles
           .filter((t) => offeredPropertyTileIds.includes(t.id))
@@ -199,6 +220,7 @@ export async function POST(request: Request) {
           offeringPlayerId,
           targetPlayerId,
           summary: summaryStr,
+          completedSets,
         },
       }),
       serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} })

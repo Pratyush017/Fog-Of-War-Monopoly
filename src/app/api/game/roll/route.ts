@@ -6,7 +6,7 @@ import { logGameEvent } from "@/lib/logger";
 
 export async function POST(request: Request) {
   try {
-    const { matchId, playerId, actionId } = await request.json();
+    const { matchId, playerId, actionId, isAutoRoll } = await request.json();
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },
@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Already rolled this turn" }, { status: 400 });
     }
 
-    if (match.turnEndsAt && new Date() > match.turnEndsAt) {
+    if (!isAutoRoll && match.turnEndsAt && new Date() > match.turnEndsAt) {
       return NextResponse.json({ error: "Turn time expired" }, { status: 403 });
     }
 
@@ -45,10 +45,10 @@ export async function POST(request: Request) {
       });
     }
 
-    // ── Negative balance check ──
-    if (player.cash < 0) {
+    // ── Negative balance / Debt check ──
+    if (player.cash < 0 || player.debtAmount > 0) {
       return NextResponse.json(
-        { error: "Cannot roll with negative balance. Mortgage or sell properties to cover debt, or declare bankruptcy." },
+        { error: "Cannot roll while in debt. Mortgage or sell properties to clear your debt, or declare bankruptcy." },
         { status: 400 }
       );
     }
@@ -72,7 +72,9 @@ export async function POST(request: Request) {
     let responseAction: string | null = null;
     const landedBoardIndex = newPosition; // Position BEFORE Go-To-Jail redirect
     if (landedTile.tileType === "PROPERTY" && !landedTile.ownerId) {
-      responseAction = "buy-prompt";
+      if (!isAutoRoll) {
+        responseAction = "buy-prompt";
+      }
     } else if (landedTile.tileType === "GO_TO_JAIL") {
       newPosition = 10;
     }
@@ -225,11 +227,21 @@ export async function POST(request: Request) {
 
           case "PROPERTY": {
             if (!landedTile.ownerId) {
-              // We computed responseAction='buy-prompt' synchronously
-              await serverBroadcast(match.inviteCode, {
-                type: "buy-prompt",
-                payload: { playerId, boardIndex: landedTile.boardIndex },
-              });
+              if (isAutoRoll) {
+                if (match.passUpRule === "AUCTION") {
+                  await serverBroadcast(match.inviteCode, {
+                    type: "auction-start",
+                    payload: { boardIndex: landedTile.boardIndex, startingBid: 10 },
+                  });
+                  await logGameEvent(match.id, match.inviteCode, `Auction started for ${landedTile.property?.name}`, "info");
+                }
+              } else {
+                // We computed responseAction='buy-prompt' synchronously
+                await serverBroadcast(match.inviteCode, {
+                  type: "buy-prompt",
+                  payload: { playerId, boardIndex: landedTile.boardIndex },
+                });
+              }
             } else if (landedTile.ownerId && landedTile.ownerId !== playerId) {
               // Owned by another player → pay rent
               const owner = match.players.find((p) => p.id === landedTile.ownerId);
@@ -260,18 +272,52 @@ export async function POST(request: Request) {
                   isMortgaged: landedTile.isMortgaged,
                 });
 
-                // Pay rent
-                await prisma.$transaction([
-                  prisma.player.update({
-                    where: { id: playerId },
-                    data: { cash: { decrement: rent } },
-                  }),
-                  prisma.player.update({
-                    where: { id: owner.id },
-                    data: { cash: { increment: rent } },
-                  }),
-                ]);
+                // Check if they go negative (only extend if they were forced to roll)
+                if (player.cash - rent < 0 && isAutoRoll) {
+                  // Extend timer by 60s
+                  const newTurnEndsAt = new Date(Date.now() + 60000);
+                  await prisma.match.update({
+                    where: { id: matchId },
+                    data: { turnEndsAt: newTurnEndsAt },
+                  });
+                  await serverBroadcast(match.inviteCode, {
+                    type: "turn-changed",
+                    payload: {
+                      currentTurnId: playerId,
+                      turnEndsAt: newTurnEndsAt.toISOString(),
+                      hasRolled: true,
+                    },
+                  });
+                }
 
+                // Pay rent (partial or full based on available cash)
+                const availableCash = Math.max(0, player.cash);
+                const paidInstantly = Math.min(availableCash, rent);
+                const debt = rent - paidInstantly;
+
+                const txs = [];
+                if (debt > 0) {
+                  // Player can't cover full rent, assign debt
+                  txs.push(prisma.player.update({
+                    where: { id: playerId },
+                    data: { cash: { decrement: rent }, creditorId: owner.id, debtAmount: debt }
+                  }));
+                } else {
+                  // Player can cover it
+                  txs.push(prisma.player.update({
+                    where: { id: playerId },
+                    data: { cash: { decrement: rent } }
+                  }));
+                }
+
+                if (paidInstantly > 0) {
+                  txs.push(prisma.player.update({
+                    where: { id: owner.id },
+                    data: { cash: { increment: paidInstantly } }
+                  }));
+                }
+                
+                await prisma.$transaction(txs);
                 await logGameEvent(match.id, match.inviteCode, `${player.name} paid $${rent} rent to ${owner.name} for ${landedTile.property.name}`, "rent");
                 await serverBroadcast(match.inviteCode, {
                   type: "rent-paid",

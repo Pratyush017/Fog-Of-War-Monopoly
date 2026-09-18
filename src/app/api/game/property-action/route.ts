@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serverBroadcast } from "@/lib/supabase-channels";
+import { interceptCashInflow } from "@/lib/debt-utils";
 import { logGameEvent } from "@/lib/logger";
 import { 
   validateAndCalculateUpgrade, 
@@ -86,46 +87,49 @@ export async function POST(request: Request) {
     }
 
     // Execute Transaction
-    await prisma.$transaction([
-      prisma.player.update({
-        where: { id: playerId },
-        data: { cash: { increment: cashChange } },
-      }),
-      prisma.matchTile.update({
+    let actualCashChange = cashChange;
+    await prisma.$transaction(async (tx) => {
+      actualCashChange = await interceptCashInflow(tx, playerId, cashChange);
+
+      await tx.matchTile.update({
         where: { id: tile.id },
         data: {
           houses: newHouses,
           isMortgaged: newIsMortgaged,
           ownerId: newOwnerId,
         },
-      }),
-      prisma.gameLog.create({
+      });
+
+      await tx.gameLog.create({
         data: {
           matchId: match.id,
           message: `${player.name} performed ${action} on ${property.name}`,
           type: "info"
         }
-      })
-    ]);
+      });
+    });
 
     // Broadcast Update
-    await serverBroadcast(match.inviteCode, {
-      type: "property-action",
-      actionId,
-      payload: {
-        playerId,
-        boardIndex: tile.boardIndex,
-        action,
-        newCash: player.cash + cashChange,
-        newHouses,
-        newIsMortgaged,
-        newOwnerId,
-      },
-    });
+    await Promise.all([
+      serverBroadcast(match.inviteCode, {
+        type: "property-action",
+        actionId,
+        payload: {
+          playerId,
+          boardIndex: tile.boardIndex,
+          action,
+          newCash: player.cash + actualCashChange,
+          newHouses,
+          newIsMortgaged,
+          newOwnerId,
+        },
+      }),
+      serverBroadcast(match.inviteCode, { type: "state-sync", payload: {} })
+    ]);
 
     return NextResponse.json({
       success: true,
-      newCash: player.cash + cashChange,
+      newCash: player.cash + actualCashChange,
       newHouses,
       newIsMortgaged,
       newOwnerId,

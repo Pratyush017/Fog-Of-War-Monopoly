@@ -26,15 +26,24 @@ export default function TurnTimer() {
       // (This will be handled in DiceRoller/ActionPanel via another timer)
     }
 
-    // Fire end-turn to seize it (if not our turn) or force end (if it is our turn and we've rolled)
     try {
-      await fetch("/api/game/end-turn", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, playerId: myPlayerId }),
-      });
+      const activePlayer = useGameStore.getState().players.find(p => p.id === match.currentTurnId);
+      if (match.hasRolled && (activePlayer?.cash ?? 0) < 0) {
+        // Auto-bankrupt the active player (works for seizure too if they are unresponsive)
+        await fetch("/api/game/bank-action", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId: match.id, playerId: activePlayer?.id, action: "BANKRUPTCY", seizerId: myPlayerId }),
+        });
+      } else {
+        await fetch("/api/game/end-turn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ matchId: match.id, playerId: myPlayerId }),
+        });
+      }
     } catch (error) {
-      console.error("Failed to auto-end turn:", error);
+      console.error("Failed to auto-end turn or auto-bankrupt:", error);
     }
   }, [match, myPlayerId, isMyTurn]);
 

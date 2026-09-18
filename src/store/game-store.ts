@@ -21,6 +21,8 @@ export interface ClientPlayer {
   loanDeadlineTurn: number | null;
   isLiquidating: boolean;
   hasDefaulted: boolean;
+  creditorId: string | null;
+  debtAmount: number;
 }
 
 export interface ClientTile {
@@ -289,7 +291,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
     currentBid: 0,
     currentBidderId: null,
     currentBidderName: null,
-    timeLeft: 6,
+    timeLeft: 15,
   },
   setAuction: (partial) =>
     set((state) => ({ auction: { ...state.auction, ...partial } })),
@@ -301,7 +303,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
         currentBid: 0,
         currentBidderId: null,
         currentBidderName: null,
-        timeLeft: 6,
+        timeLeft: 15,
       },
     }),
 

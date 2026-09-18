@@ -22,7 +22,7 @@ const CORNER_DATA: Record<string, { label: string; color: string; html: string }
   GO: { 
     label: "GO", 
     color: "bg-red-900", 
-    html: `<div class="text-white font-black text-2xl tracking-widest uppercase rotate-[-45deg]">GO</div><div class="text-red-200 text-[8px] absolute bottom-2 left-2 rotate-[-45deg] font-mono">+$200</div>` 
+    html: `<div class="text-green-400 font-black text-2xl sm:text-3xl tracking-widest uppercase rotate-[-45deg] [-webkit-text-stroke:2px_black] drop-shadow-lg">GO</div><div class="text-red-200 text-[8px] sm:text-[10px] absolute bottom-1 sm:bottom-2 left-1 sm:left-2 rotate-[-45deg] font-mono font-bold">+$200</div>` 
   },
   JAIL: { 
     label: "JAIL", 

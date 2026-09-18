@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { serverBroadcast } from "@/lib/supabase-channels";
+import { interceptCashInflow } from "@/lib/debt-utils";
 import { logGameEvent } from "@/lib/logger";
 
 const NORMAL_LOAN_TIERS: Record<number, { principal: number; interestRate: number; turns: number }> = {
@@ -117,16 +118,20 @@ export async function POST(request: Request) {
     const loanDeadlineTurn = player.turnsPlayed + turnsDue;
 
     // Apply loan transaction
-    await prisma.player.update({
-      where: { id: playerId },
-      data: {
-        cash: { increment: principal },
-        loanType,
-        loanPrincipal: principal,
-        loanInterest: loanInterest,
-        loanDeadlineTurn: loanDeadlineTurn,
-        isLiquidating: false,
-      },
+    await prisma.$transaction(async (tx) => {
+      // First apply the principal to the loan fields
+      await tx.player.update({
+        where: { id: playerId },
+        data: {
+          loanType,
+          loanPrincipal: principal,
+          loanInterest: loanInterest,
+          loanDeadlineTurn: loanDeadlineTurn,
+          isLiquidating: false,
+        },
+      });
+      // Then intercept the cash inflow which handles player debt
+      await interceptCashInflow(tx, playerId, principal);
     });
 
     const totalRepay = principal + loanInterest;

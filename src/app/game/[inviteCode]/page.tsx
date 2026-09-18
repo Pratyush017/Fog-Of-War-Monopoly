@@ -166,6 +166,8 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             loanDeadlineTurn: null,
             isLiquidating: false,
             hasDefaulted: false,
+            creditorId: null,
+            debtAmount: 0,
           });
           
           break;
@@ -313,7 +315,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             currentBid: event.payload.startingBid,
             currentBidderId: null,
             currentBidderName: null,
-            timeLeft: 6,
+            timeLeft: 15,
           });
           
           break;
@@ -438,6 +440,16 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           break;
 
         case "trade-accepted":
+          if (event.payload.completedSets && event.payload.completedSets.length > 0) {
+            playBoughtAllSets();
+            event.payload.completedSets.forEach((set) => {
+              useGameStore.getState().setCompletedSetHighlight({
+                colorSet: set.colorSet,
+                color: set.color,
+                timestamp: Date.now()
+              });
+            });
+          }
           playNotification();
           fetchGameState();
           break;

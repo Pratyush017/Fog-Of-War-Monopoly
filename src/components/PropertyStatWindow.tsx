@@ -114,7 +114,12 @@ export default function PropertyStatWindow() {
     }
 
     // Optimistic Update
-    store.updatePlayer(myPlayerId, { cash: prevCash + cashChange });
+    const myPlayer = store.players.find(p => p.id === myPlayerId);
+    const inDebt = (myPlayer?.debtAmount ?? 0) > 0;
+
+    if (!inDebt) {
+      store.updatePlayer(myPlayerId, { cash: prevCash + cashChange });
+    }
     store.updateTile(tile.boardIndex, { houses: newHouses, isMortgaged: newMortgaged, ownerId: newOwnerId });
 
     const actionId = registerOptimisticAction("property-action");
@@ -140,14 +145,14 @@ export default function PropertyStatWindow() {
 
       if (!res.ok) {
         // Rollback
-        store.updatePlayer(myPlayerId, { cash: prevCash });
+        if (!inDebt) store.updatePlayer(myPlayerId, { cash: prevCash });
         store.updateTile(tile.boardIndex, { houses: prevHouses, isMortgaged: prevMortgaged, ownerId: prevOwnerId });
         alert(data.error);
       }
     } catch (error) {
       console.error(error);
       // Rollback
-      store.updatePlayer(myPlayerId, { cash: prevCash });
+      if (!inDebt) store.updatePlayer(myPlayerId, { cash: prevCash });
       store.updateTile(tile.boardIndex, { houses: prevHouses, isMortgaged: prevMortgaged, ownerId: prevOwnerId });
       alert("Failed to perform action");
     } finally {

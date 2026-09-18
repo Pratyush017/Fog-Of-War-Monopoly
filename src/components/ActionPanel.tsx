@@ -40,6 +40,7 @@ export default function ActionPanel() {
             matchId: currentMatch.id,
             playerId: currentAuction.currentBidderId,
             tileIndex: currentAuction.boardIndex,
+            price: currentAuction.currentBid,
           }),
         }).catch(err => console.error("Auction finalize failed:", err));
         
@@ -263,7 +264,7 @@ export default function ActionPanel() {
         currentBid: targetBid,
         currentBidderId: myPlayerId,
         currentBidderName: "You",
-        timeLeft: 6, // Reset timer
+        timeLeft: 15, // Reset timer
       });
 
       await fetch("/api/game/auction-bid", {

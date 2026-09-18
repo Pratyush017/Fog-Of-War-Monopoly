@@ -312,15 +312,15 @@ export function calculateRent(ctx: RentContext): number {
 // ─── Net Worth Calculation ─────────────────────────────────
 export function calculatePlayerNetWorth(
   cash: number,
-  ownedTilesWithProperties: { property: { originalMortgage: number } | null }[]
+  ownedTilesWithProperties: { property: { price: number } | null }[]
 ): number {
-  let totalMortgageValue = 0;
+  let totalPropertyValue = 0;
   for (const tile of ownedTilesWithProperties) {
     if (tile.property) {
-      totalMortgageValue += tile.property.originalMortgage;
+      totalPropertyValue += tile.property.price;
     }
   }
-  return cash + totalMortgageValue;
+  return cash + totalPropertyValue;
 }
 
 // ─── Board Index → Position Mapping ────────────────────────

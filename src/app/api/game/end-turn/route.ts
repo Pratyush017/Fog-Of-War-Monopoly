@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { serverBroadcast } from "@/lib/supabase-channels";
 import { logGameEvent } from "@/lib/logger";
 import { calculateNextActivePlayer } from "@/lib/game-engine";
+import { resolveForcedBankruptcy } from "@/lib/debt-utils";
 
 export async function POST(request: Request) {
   try {
@@ -23,10 +24,12 @@ export async function POST(request: Request) {
     }
 
     // Security Check: Turn Seizure
+    let isSeizure = false;
     if (match.currentTurnId !== playerId) {
       // Caller is NOT the active player. Check if they are authorized to seize the turn.
       if (!match.turnEndsAt || new Date() > match.turnEndsAt) {
          // Valid seizure!
+         isSeizure = true;
       } else {
         return NextResponse.json({ error: "Not your turn and time is not up!" }, { status: 403 });
       }
@@ -45,12 +48,31 @@ export async function POST(request: Request) {
       );
     }
 
-    // ── Negative balance check ──
-    if (activePlayer.cash < 0) {
-      return NextResponse.json(
-        { error: "Cannot end turn with negative balance. Mortgage or sell properties to cover debt, or declare bankruptcy." },
-        { status: 400 }
-      );
+    // ── Negative balance / Debt check ──
+    if (activePlayer.cash < 0 || activePlayer.debtAmount > 0) {
+      if (isSeizure) {
+        // Force bankruptcy because time expired while in debt!
+        await prisma.$transaction(async (tx) => {
+          await resolveForcedBankruptcy(tx, match.id, activePlayer.id);
+        });
+
+        await logGameEvent(
+          match.id,
+          match.inviteCode,
+          `💀 ${activePlayer.name} ran out of time while in debt and was forced into bankruptcy!`,
+          "alert"
+        );
+
+        await serverBroadcast(match.inviteCode, {
+          type: "player-bankrupt",
+          payload: { playerId: activePlayer.id },
+        });
+      } else {
+        return NextResponse.json(
+          { error: "Cannot end turn while in debt. Mortgage or sell properties to clear your debt, or declare bankruptcy." },
+          { status: 400 }
+        );
+      }
     }
 
     // ── Check Loan Maturity Deadline ──

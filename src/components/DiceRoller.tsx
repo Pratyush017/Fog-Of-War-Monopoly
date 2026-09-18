@@ -87,23 +87,25 @@ function DiceCube({ value, rolling, spinId, index }: { value: number; rolling: b
   );
 }
 
-import TurnTimer from "./TurnTimer";
-
 export default function DiceRoller() {
   const { dice, match, myPlayerId, pendingAction, setDice, autoRollRequested, setAutoRollRequested } = useGameStore();
-  const { playRoll } = useGameSounds();
+  const { playRoll, playJail } = useGameSounds();
   const [fetching, setFetching] = useState(false);
   const [spinId, setSpinId] = useState(0);
   const [isRolling, setIsRolling] = useState(false);
 
-  const myPlayer = useGameStore.getState().players.find(p => p.id === myPlayerId);
+  const myPlayer = useGameStore((state) => state.players).find(p => p.id === myPlayerId);
   const hasNegativeBalance = (myPlayer?.cash ?? 0) < 0;
+  const hasPlayerDebt = (myPlayer?.debtAmount ?? 0) > 0;
+  const inDebt = hasNegativeBalance || hasPlayerDebt;
 
   const isMyTurn = match?.currentTurnId === myPlayerId;
   const rolling = !!(dice?.rolling) || isRolling;
-  const canRoll = isMyTurn && !rolling && !fetching && !pendingAction && !match?.hasRolled && !hasNegativeBalance;
+  const canRoll = isMyTurn && !rolling && !fetching && !pendingAction && !match?.hasRolled && !inDebt;
 
-  const handleRoll = useCallback(async () => {
+  const handleRoll = useCallback(async (isAutoRollOrEvent?: boolean | React.MouseEvent) => {
+    const isAutoRoll = typeof isAutoRollOrEvent === "boolean" ? isAutoRollOrEvent : false;
+    
     if (!canRoll || !match) return;
     
     const actionId = registerOptimisticAction("roll");
@@ -128,7 +130,7 @@ export default function DiceRoller() {
       const res = await fetch("/api/game/roll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, playerId: myPlayerId, actionId }),
+        body: JSON.stringify({ matchId: match.id, playerId: myPlayerId, actionId, isAutoRoll }),
       });
 
       const data = await res.json();
@@ -230,7 +232,7 @@ export default function DiceRoller() {
 
   useEffect(() => {
     if (autoRollRequested && canRoll) {
-      handleRoll();
+      handleRoll(true);
       setAutoRollRequested(false);
     } else if (autoRollRequested) {
       setAutoRollRequested(false);
@@ -310,11 +312,9 @@ export default function DiceRoller() {
         {(!dice || rolling || dice.total === 0) && (
           <div className="h-8" />
         )}
-
         {/* Actions row */}
         {isMyTurn && (
           <div className="flex flex-col items-center gap-4">
-            <TurnTimer />
             <div className="flex gap-2">
               <button
                 onClick={handleRoll}
@@ -331,9 +331,9 @@ export default function DiceRoller() {
               {match?.hasRolled && (
                 <button
                   onClick={handleEndTurn}
-                  disabled={fetching || rolling || !!pendingAction || hasNegativeBalance}
+                  disabled={fetching || rolling || !!pendingAction || inDebt}
                   className={`btn-secondary px-6 py-3 transition-colors ${
-                    hasNegativeBalance 
+                    inDebt 
                       ? 'bg-red-900/50 text-red-500/50 border-red-900/50 cursor-not-allowed' 
                       : 'bg-red-500/10 text-red-400 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/40'
                   }`}
@@ -343,9 +343,11 @@ export default function DiceRoller() {
               )}
             </div>
             
-            {hasNegativeBalance && (
+            {inDebt && (
               <div className="mt-2 bg-red-950/80 border border-red-700 text-red-200 text-xs px-4 py-2 rounded max-w-[280px] text-center shadow-lg animate-pulse">
-                <span className="font-bold">Negative Balance!</span><br/>
+                <span className="font-bold">
+                  {hasPlayerDebt ? `Clear your debt to roll — $${myPlayer?.debtAmount} remaining!` : "Negative Balance!"}
+                </span><br/>
                 Mortgage properties, trade, or declare bankruptcy to continue.
               </div>
             )}

@@ -6,7 +6,7 @@ import { getPurchasePrice } from "@/lib/game-engine";
 
 export async function POST(request: Request) {
   try {
-    const { matchId, playerId, tileIndex, actionId } = await request.json();
+    const { matchId, playerId, tileIndex, actionId, price } = await request.json();
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
     }
 
     // Price calculation
-    const buyPrice = getPurchasePrice(tile, tile.property!);
+    const buyPrice = price !== undefined ? price : getPurchasePrice(tile, tile.property!);
 
     if (player.cash < buyPrice) {
       return NextResponse.json({ error: "Not enough cash" }, { status: 400 });

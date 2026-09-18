@@ -36,8 +36,15 @@ export default function IncomingTradeModal() {
     // Optimistic Update
     setIncomingTradeOffer(null);
     if (accepted && myPlayer && offeringPlayerState) {
-      store.updatePlayer(myPlayerId, { cash: prevMyCash + incomingTradeOffer.offeredCash - incomingTradeOffer.requestedCash });
-      store.updatePlayer(incomingTradeOffer.offeringPlayerId, { cash: prevOfferingCash + incomingTradeOffer.requestedCash - incomingTradeOffer.offeredCash });
+      const myInDebt = (myPlayer.debtAmount ?? 0) > 0;
+      const offeringInDebt = (offeringPlayerState.debtAmount ?? 0) > 0;
+      
+      if (!myInDebt) {
+        store.updatePlayer(myPlayerId, { cash: prevMyCash + incomingTradeOffer.offeredCash - incomingTradeOffer.requestedCash });
+      }
+      if (!offeringInDebt) {
+        store.updatePlayer(incomingTradeOffer.offeringPlayerId, { cash: prevOfferingCash + incomingTradeOffer.requestedCash - incomingTradeOffer.offeredCash });
+      }
       
       offeredTileIds.forEach(id => {
         const t = store.tiles.find(tile => tile.id === id);
@@ -80,8 +87,10 @@ export default function IncomingTradeModal() {
         if (!res.ok) {
           // Rollback
           setIncomingTradeOffer(prevOffer);
-          store.updatePlayer(myPlayerId, { cash: prevMyCash });
-          store.updatePlayer(incomingTradeOffer.offeringPlayerId, { cash: prevOfferingCash });
+          const myInDebt = (myPlayer?.debtAmount ?? 0) > 0;
+          const offeringInDebt = (offeringPlayerState?.debtAmount ?? 0) > 0;
+          if (!myInDebt) store.updatePlayer(myPlayerId, { cash: prevMyCash });
+          if (!offeringInDebt) store.updatePlayer(incomingTradeOffer.offeringPlayerId, { cash: prevOfferingCash });
           prevTiles.forEach(t => store.updateTile(t.boardIndex, { ownerId: t.ownerId }));
           alert(data.error || "Failed to accept trade");
         } else {
@@ -93,8 +102,10 @@ export default function IncomingTradeModal() {
       if (accepted) {
         // Rollback
         setIncomingTradeOffer(prevOffer);
-        store.updatePlayer(myPlayerId, { cash: prevMyCash });
-        store.updatePlayer(incomingTradeOffer.offeringPlayerId, { cash: prevOfferingCash });
+        const myInDebt = (myPlayer?.debtAmount ?? 0) > 0;
+        const offeringInDebt = (offeringPlayerState?.debtAmount ?? 0) > 0;
+        if (!myInDebt) store.updatePlayer(myPlayerId, { cash: prevMyCash });
+        if (!offeringInDebt) store.updatePlayer(incomingTradeOffer.offeringPlayerId, { cash: prevOfferingCash });
         prevTiles.forEach(t => store.updateTile(t.boardIndex, { ownerId: t.ownerId }));
         alert("Network error: Failed to accept trade");
       }

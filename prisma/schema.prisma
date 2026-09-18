@@ -57,6 +57,8 @@ model Player {
   loanDeadlineTurn Int?    // Exact player turn number the loan is due
   isLiquidating    Boolean @default(false)
   hasDefaulted     Boolean @default(false)
+  creditorId       String? // References another Player.id if in debt
+  debtAmount       Int     @default(0) // Amount owed to creditorId
 
   match      Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
 
