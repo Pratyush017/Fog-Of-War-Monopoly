@@ -434,12 +434,8 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         }
 
         case "go-collect": {
-          setTimeout(() => {
-            const collector = useGameStore.getState().players.find((p) => p.id === event.payload.playerId);
-            if (!collector) return;
-            const amount = event.payload.amount;
-            updatePlayer(collector.id, { cash: collector.cash + amount });
-          }, 550);
+          // Cash is already included in the player-moved delta, so no need to
+          // update cash here. This event is only used for visual/audio feedback.
           break;
         }
 
