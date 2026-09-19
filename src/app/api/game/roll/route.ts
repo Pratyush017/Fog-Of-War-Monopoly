@@ -424,43 +424,54 @@ export async function POST(request: Request) {
                   });
                 }
 
-                // Pay rent (partial or full based on available cash)
-                const availableCash = Math.max(0, player.cash);
-                const paidInstantly = Math.min(availableCash, rent);
-                const debt = rent - paidInstantly;
+                let finalPlayerCash = 0;
+                let finalDebtAmount = 0;
+                let finalOwnerCash = 0;
+                let paidInstantly = 0;
 
-                const txs = [];
-                if (debt > 0) {
-                  // Player can't cover full rent, assign debt
-                  txs.push(prisma.player.update({
-                    where: { id: playerId },
-                    data: { cash: { decrement: rent }, creditorId: owner.id, debtAmount: debt }
-                  }));
-                } else {
-                  // Player can cover it
-                  txs.push(prisma.player.update({
-                    where: { id: playerId },
-                    data: { cash: { decrement: rent } }
-                  }));
-                }
+                await prisma.$transaction(async (tx) => {
+                  const dbPlayer = await tx.player.findUniqueOrThrow({ where: { id: playerId } });
+                  const dbOwner = await tx.player.findUniqueOrThrow({ where: { id: owner.id } });
 
-                if (paidInstantly > 0) {
-                  txs.push(prisma.player.update({
-                    where: { id: owner.id },
-                    data: { cash: { increment: paidInstantly } }
-                  }));
-                }
-                
-                await prisma.$transaction(txs);
+                  const availableCash = Math.max(0, dbPlayer.cash);
+                  paidInstantly = Math.min(availableCash, rent);
+                  const debt = rent - paidInstantly;
+                  finalDebtAmount = debt;
+
+                  if (debt > 0) {
+                    const updatedPlayer = await tx.player.update({
+                      where: { id: playerId },
+                      data: { cash: { decrement: rent }, creditorId: owner.id, debtAmount: debt }
+                    });
+                    finalPlayerCash = updatedPlayer.cash;
+                  } else {
+                    const updatedPlayer = await tx.player.update({
+                      where: { id: playerId },
+                      data: { cash: { decrement: rent } }
+                    });
+                    finalPlayerCash = updatedPlayer.cash;
+                  }
+
+                  if (paidInstantly > 0) {
+                    const updatedOwner = await tx.player.update({
+                      where: { id: owner.id },
+                      data: { cash: { increment: paidInstantly } }
+                    });
+                    finalOwnerCash = updatedOwner.cash;
+                  } else {
+                    finalOwnerCash = dbOwner.cash;
+                  }
+                });
+
                 await logGameEvent(match.id, match.inviteCode, `${player.name} paid $${rent} rent to ${owner.name} for ${landedTile.property.name}`, "rent");
                 const playersDelta: any[] = [];
-                if (debt > 0) {
-                  playersDelta.push({ id: playerId, cash: player.cash - rent, creditorId: owner.id, debtAmount: player.debtAmount + debt });
+                if (finalDebtAmount > 0) {
+                  playersDelta.push({ id: playerId, cash: finalPlayerCash, creditorId: owner.id, debtAmount: finalDebtAmount });
                 } else {
-                  playersDelta.push({ id: playerId, cash: player.cash - rent });
+                  playersDelta.push({ id: playerId, cash: finalPlayerCash });
                 }
                 if (paidInstantly > 0) {
-                  playersDelta.push({ id: owner.id, cash: owner.cash + paidInstantly });
+                  playersDelta.push({ id: owner.id, cash: finalOwnerCash });
                 }
 
                 await serverBroadcast(match.inviteCode, {
