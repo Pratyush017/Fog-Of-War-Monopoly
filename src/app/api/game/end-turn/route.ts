@@ -50,8 +50,9 @@ export async function POST(request: Request) {
     }
 
     // ── Negative balance / Debt check ──
+    const isTimeExpired = match.turnEndsAt && new Date() >= match.turnEndsAt;
     if (activePlayer.cash < 0 || activePlayer.debtAmount > 0) {
-      if (isSeizure) {
+      if (isSeizure || isTimeExpired) {
         // Force bankruptcy because time expired while in debt!
         await prisma.$transaction(async (tx) => {
           await resolveForcedBankruptcy(tx, match.id, activePlayer.id);
@@ -191,8 +192,8 @@ export async function POST(request: Request) {
     
     const nextPlayerName = match.players.find(p => p.id === nextPlayerId)?.name || "Unknown";
 
-    // Reset hasRolled and set new turnEndsAt (+3 mins)
-    const newTurnEndsAt = new Date(Date.now() + 3 * 60 * 1000);
+    // Reset hasRolled and set new turnEndsAt (+5s buffer before 3 min timer starts)
+    const newTurnEndsAt = new Date(Date.now() + 5000 + 3 * 60 * 1000);
 
     // 1. Broadcast immediately
     const broadcastPromise = serverBroadcast(match.inviteCode, {

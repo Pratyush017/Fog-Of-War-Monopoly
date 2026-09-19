@@ -106,22 +106,24 @@ export default function DiceRoller() {
 
   const handleRoll = useCallback(async (isAutoRollOrEvent?: boolean | React.MouseEvent) => {
     const isAutoRoll = typeof isAutoRollOrEvent === "boolean" ? isAutoRollOrEvent : false;
+    const store = useGameStore.getState();
+    const currentMatch = store.match;
+    const player = store.players.find(p => p.id === myPlayerId);
     
-    if (!canRoll || !match) return;
+    if (!currentMatch || currentMatch.currentTurnId !== myPlayerId) return null;
+    if ((player?.cash ?? 0) < 0 || (player?.debtAmount ?? 0) > 0) return null;
     
     const actionId = registerOptimisticAction("roll");
     const start = performance.now();
     (window as any)._lastAction = { type: 'roll', start, actionId };
-    
-    const myPlayer = useGameStore.getState().players.find(p => p.id === myPlayerId);
 
-    // If we already know we're in jail locally, don't even start the optimistic spin
-    if (myPlayer?.inJail) {
-      useGameStore.getState().setPendingAction({ type: "jail-choice" });
-      return;
+    // If we already know we're in jail locally, don't start the spin
+    if (player?.inJail) {
+      store.setPendingAction({ type: "jail-choice" });
+      return null;
     }
 
-    // Disable button and show loading state but DO NOT start spinning yet
+    // Disable button and start animation
     setIsRolling(true);
     setFetching(true);
     
@@ -138,33 +140,30 @@ export default function DiceRoller() {
       rolling: true
     });
 
-    // Record the time we started the fetch so we can guarantee a minimum animation duration
     const fetchStartTime = Date.now();
 
     try {
       const res = await fetch("/api/game/roll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, playerId: myPlayerId, actionId, isAutoRoll }),
+        body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, actionId, isAutoRoll }),
       });
 
       const data = await res.json();
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
-if (process.env.NODE_ENV !== 'production') {
-      console.log(`[TIMELINE: ROLL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
-    }
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[TIMELINE: ROLL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+      }
 
       if (data.requiresJailDecision) {
         setIsRolling(false);
-        clearDice(); // Stop rolling animation if they actually couldn't roll
+        clearDice();
         useGameStore.getState().setPendingAction({ type: "jail-choice" });
-        return;
+        return data;
       }
       
-      // We got the real results! Update the rolling dice with the actual values
-      // (They keep spinning, but now we know what they will land on)
       if (data.dice) {
         setDice({ 
           die1: data.dice.die1, 
@@ -174,7 +173,7 @@ if (process.env.NODE_ENV !== 'production') {
           rolling: true 
         });
         
-        // Optimistically update hasRolled locally based on if it was doubles!
+        // Update hasRolled locally based on whether it was doubles
         useGameStore.getState().updateMatch({ hasRolled: !data.dice.isDoubles });
       }
 
@@ -186,93 +185,87 @@ if (process.env.NODE_ENV !== 'production') {
       
       setIsRolling(false);
       
-      // Update global dice state to stop rolling, locking them in their final position
+      // Lock dice in final position
       if (data.dice) {
         setDice({ die1: data.dice.die1, die2: data.dice.die2, total: data.dice.total, isDoubles: data.dice.isDoubles, rolling: false });
       }
 
-      const store = useGameStore.getState();
+      const freshStore = useGameStore.getState();
       const tileType = data.landedTileType;
       const landedAt = data.landedBoardIndex ?? data.newPosition;
 
       // ── Handle GO_TO_JAIL: two-step animation ──
       if (tileType === "GO_TO_JAIL" && myPlayerId) {
-        // Step 1: Move piece to the Go To Jail tile (position 30)
-        store.updatePlayer(myPlayerId, { position: landedAt });
-        // Step 2: Brief pause so user sees the piece land, then move to Jail
+        freshStore.updatePlayer(myPlayerId, { position: landedAt });
         await new Promise(resolve => setTimeout(resolve, 200));
-        store.updatePlayer(myPlayerId, { position: 10, inJail: true });
+        freshStore.updatePlayer(myPlayerId, { position: 10, inJail: true });
         playJail();
       }
-      // ── Standard movement (start the CSS transition) ──
+      // ── Standard movement ──
       if (data.newPosition !== undefined && myPlayerId && tileType !== "GO_TO_JAIL") {
-        store.updatePlayer(myPlayerId, { position: data.newPosition });
+        freshStore.updatePlayer(myPlayerId, { position: data.newPosition });
       }
 
       // Short delay for token landing animation before showing action prompts or cards
       await new Promise(resolve => setTimeout(resolve, 350));
 
-      // ── Handle Landing Effects NOW that the piece has landed ──
+      // ── Handle Landing Effects ──
       if (tileType === "TAX") {
         playNotification();
-      } 
-      else if ((tileType === "CHANCE" || tileType === "CHEST") && myPlayerId) {
+      } else if ((tileType === "CHANCE" || tileType === "CHEST") && myPlayerId) {
         if (data.card) {
           playNotification();
-          store.setActionCardReveal({
+          freshStore.setActionCardReveal({
             type: tileType === "CHANCE" ? "CHANCE" : "CHEST",
             description: data.card.description,
           });
           
-          // If the card sends to jail, animate the jail movement after a brief pause so they can read the card
           if (data.card.effect === "jail") {
             await new Promise(resolve => setTimeout(resolve, 800));
-            store.updatePlayer(myPlayerId, { position: 10, inJail: true });
+            freshStore.updatePlayer(myPlayerId, { position: 10, inJail: true });
             playJail();
-          }
-          // If the card moves to a position, animate that
-          else if (data.card.effect === "move" && data.card.moveTo !== undefined) {
+          } else if (data.card.effect === "move" && data.card.moveTo !== undefined) {
             await new Promise(resolve => setTimeout(resolve, 800));
-            store.updatePlayer(myPlayerId, { position: data.card.moveTo });
+            freshStore.updatePlayer(myPlayerId, { position: data.card.moveTo });
           }
         }
       }
 
-      // We only queue the buy-prompt if it was returned
-      if (res.ok && data.action === "buy-prompt") {
-        store.setPendingAction({
+      // Only queue buy-prompt if manual roll (auto-roll passes/auctions automatically)
+      if (res.ok && data.action === "buy-prompt" && !isAutoRoll) {
+        freshStore.setPendingAction({
           type: "buy-prompt",
           boardIndex: data.newPosition,
         });
       }
+
+      return data;
     } catch (error) {
       console.error("Roll failed:", error);
       setIsRolling(false);
+      return null;
     } finally {
       setFetching(false);
     }
-  }, [canRoll, match, myPlayerId, playRoll]);
-
-  useEffect(() => {
-    if (autoRollRequested && canRoll) {
-      handleRoll(true);
-      setAutoRollRequested(false);
-    } else if (autoRollRequested) {
-      setAutoRollRequested(false);
-    }
-  }, [autoRollRequested, canRoll, handleRoll, setAutoRollRequested]);
+  }, [myPlayerId, playRoll, playJail, playNotification, setDice, clearDice]);
 
   const handleEndTurn = useCallback(async () => {
-    if (!match || !myPlayerId || fetching || hasNegativeBalance) return;
+    const store = useGameStore.getState();
+    const currentMatch = store.match;
+    if (!currentMatch || !myPlayerId) return;
+
+    const currentPlayer = store.players.find(p => p.id === myPlayerId);
+    if ((currentPlayer?.cash ?? 0) < 0 && (currentMatch.turnEndsAt && new Date() < new Date(currentMatch.turnEndsAt))) {
+      return;
+    }
+
     setFetching(true);
 
     // -- Optimistic UI --
-    const prevTurnId = match.currentTurnId;
-    const prevHasRolled = match.hasRolled;
-    const store = useGameStore.getState();
+    const prevTurnId = currentMatch.currentTurnId;
+    const prevHasRolled = currentMatch.hasRolled;
     
     const nextPlayerId = calculateNextActivePlayer(store.players, myPlayerId);
-
     if (nextPlayerId) {
       store.updateMatch({ currentTurnId: nextPlayerId, hasRolled: false });
     }
@@ -282,12 +275,11 @@ if (process.env.NODE_ENV !== 'production') {
       const res = await fetch("/api/game/end-turn", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, playerId: myPlayerId, actionId }),
+        body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, actionId }),
       });
       const data = await res.json();
       
       if (!res.ok) {
-        // Rollback
         store.updateMatch({ currentTurnId: prevTurnId, hasRolled: prevHasRolled });
         alert(data.error || data.message || "Failed to end turn");
       }
@@ -302,13 +294,87 @@ if (process.env.NODE_ENV !== 'production') {
       }
     } catch (error) {
       console.error("Failed to end turn:", error);
-      // Rollback
       store.updateMatch({ currentTurnId: prevTurnId, hasRolled: prevHasRolled });
       alert("Network error: Failed to end turn");
     } finally {
       setFetching(false);
     }
-  }, [match, myPlayerId, fetching]);
+  }, [myPlayerId]);
+
+  // ── Auto-Roll Sequence (Handles timeout auto-rolling and chained doubles) ──
+  const handleAutoRollSequence = useCallback(async () => {
+    let continueRolling = true;
+    let consecutiveDoublesCount = 0;
+
+    while (continueRolling) {
+      const store = useGameStore.getState();
+      const currentMatch = store.match;
+      const currentPlayer = store.players.find(p => p.id === myPlayerId);
+
+      if (!currentMatch || currentMatch.currentTurnId !== myPlayerId || currentMatch.status !== "PLAYING") {
+        break;
+      }
+
+      // If in debt, cannot roll
+      if ((currentPlayer?.cash ?? 0) < 0 || (currentPlayer?.debtAmount ?? 0) > 0) {
+        break;
+      }
+
+      const rollResult = await handleRoll(true);
+
+      if (!rollResult || !rollResult.dice) {
+        break;
+      }
+
+      const isDoubles = rollResult.dice.isDoubles;
+      const isJailed =
+        rollResult.landedTileType === "GO_TO_JAIL" ||
+        (rollResult.card && rollResult.card.effect === "jail") ||
+        useGameStore.getState().players.find(p => p.id === myPlayerId)?.inJail;
+      const isAuction =
+        rollResult.landedTileType === "PROPERTY" && currentMatch.passUpRule === "AUCTION";
+
+      if (isAuction) {
+        // Auction started, let auction overlay take over
+        break;
+      }
+
+      if (isDoubles && !isJailed) {
+        consecutiveDoublesCount++;
+        if (consecutiveDoublesCount >= 3) {
+          // Speeding rule: 3 doubles in a row sends to Jail
+          try {
+            await fetch("/api/game/jail", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, action: "wait" }),
+            });
+          } catch (e) {
+            console.error("Speeding jail failed:", e);
+          }
+          await new Promise(resolve => setTimeout(resolve, 800));
+          await handleEndTurn();
+          break;
+        }
+
+        // Wait for token animation and effects to settle, then roll again in loop!
+        await new Promise(resolve => setTimeout(resolve, 1400));
+      } else {
+        // Not doubles (or jailed) -> finish auto-roll sequence and end turn
+        continueRolling = false;
+        await new Promise(resolve => setTimeout(resolve, 1200));
+        await handleEndTurn();
+        break;
+      }
+    }
+  }, [handleRoll, handleEndTurn, myPlayerId]);
+
+  useEffect(() => {
+    if (autoRollRequested) {
+      setAutoRollRequested(false);
+      handleAutoRollSequence();
+    }
+  }, [autoRollRequested, handleAutoRollSequence, setAutoRollRequested]);
 
   return (
     <div className="flex flex-col items-center gap-6">
@@ -336,7 +402,7 @@ if (process.env.NODE_ENV !== 'production') {
           <div className="h-8" />
         )}
 
-        <div className="flex justify-center w-full mb-2">
+        <div className="flex justify-center w-full mb-2 min-h-[42px]">
           <TurnTimer />
         </div>
 

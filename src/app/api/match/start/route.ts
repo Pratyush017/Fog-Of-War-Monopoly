@@ -81,8 +81,8 @@ export async function POST(request: Request) {
         });
       }
 
-      // Update match status
-      const turnEndsAt = new Date(Date.now() + 3 * 60 * 1000);
+      // Update match status (+5s grace period before 3 min timer starts)
+      const turnEndsAt = new Date(Date.now() + 5000 + 3 * 60 * 1000);
       await tx.match.update({
         where: { id: matchId },
         data: {
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
     });
 
     // Broadcast game started
-    const turnEndsAtStr = new Date(Date.now() + 3 * 60 * 1000).toISOString();
+    const turnEndsAtStr = new Date(Date.now() + 5000 + 3 * 60 * 1000).toISOString();
     await serverBroadcast(match.inviteCode, {
       type: "game-started",
       payload: { currentTurnId: firstPlayerId, turnEndsAt: turnEndsAtStr, hasRolled: false },

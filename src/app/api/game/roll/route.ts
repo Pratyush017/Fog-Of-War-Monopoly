@@ -264,6 +264,12 @@ export async function POST(request: Request) {
                     payload: { boardIndex: landedTile.boardIndex, startingBid: 10 },
                   });
                   await logGameEvent(match.id, match.inviteCode, `Auction started for ${landedTile.property?.name}`, "info");
+                } else {
+                  await serverBroadcast(match.inviteCode, {
+                    type: "tile-passed",
+                    payload: { boardIndex: landedTile.boardIndex },
+                  });
+                  await logGameEvent(match.id, match.inviteCode, `Property at ${landedTile.property?.name || `Tile #${landedTile.boardIndex}`} was passed (Time expired)`, "info");
                 }
               } else {
                 // We computed responseAction='buy-prompt' synchronously

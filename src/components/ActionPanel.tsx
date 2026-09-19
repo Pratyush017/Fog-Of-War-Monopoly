@@ -316,18 +316,19 @@ if (process.env.NODE_ENV !== 'production') {
   useEffect(() => {
     if (pendingAction?.type === "buy-prompt" && isMyTurn && match?.turnEndsAt) {
       const turnEndsAtTime = new Date(match.turnEndsAt).getTime();
+      const diffSec = Math.floor((turnEndsAtTime - Date.now()) / 1000);
       
-      // If the global turn timer has already expired (or is about to expire within 10s),
-      // we enforce a strict 10s local countdown before auto-passing.
-      if (Date.now() + 10000 >= turnEndsAtTime) {
-        setPromptTimeLeft(10);
+      if (diffSec <= 10 && diffSec > 0) {
+        setPromptTimeLeft(diffSec);
+      } else if (diffSec <= 0) {
+        handlePass();
       } else {
         setPromptTimeLeft(null);
       }
     } else {
       setPromptTimeLeft(null);
     }
-  }, [pendingAction, isMyTurn, match?.turnEndsAt]);
+  }, [pendingAction, isMyTurn, match?.turnEndsAt, handlePass]);
 
   useEffect(() => {
     if (promptTimeLeft === null) return;
