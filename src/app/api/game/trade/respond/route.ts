@@ -222,12 +222,17 @@ export async function POST(request: Request) {
       if (t) tilesDelta.push({ boardIndex: t.boardIndex, ownerId: offeringPlayerId });
     }
     
-    // We do a naive cash delta. If debt interception occurred, the next state sync will correct it.
-    const playersDelta = [
-      { id: offeringPlayerId, cash: offeringPlayer.cash + (requestedCash - offeredCash) },
-      { id: targetPlayerId, cash: targetPlayer.cash + (offeredCash - requestedCash) }
-    ];
-
+    // Fetch updated players to ensure debt interception is perfectly synced (including creditors)
+    const updatedMatch = await prisma.match.findUniqueOrThrow({
+      where: { id: matchId },
+      include: { players: true }
+    });
+    const playersDelta = updatedMatch.players.map(p => ({
+      id: p.id,
+      cash: p.cash,
+      debtAmount: p.debtAmount,
+      creditorId: p.creditorId
+    }));
     await Promise.all([
       serverBroadcast(match.inviteCode, {
         type: "trade-accepted",

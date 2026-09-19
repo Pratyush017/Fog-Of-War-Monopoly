@@ -131,16 +131,11 @@ export default function TurnTimer() {
 
       try {
         const activePlayer = freshStore.players.find((p) => p.id === freshMatch.currentTurnId);
-        if (freshMatch.hasRolled && (activePlayer?.cash ?? 0) < 0) {
-          await fetch("/api/game/bank-action", {
+        if ((activePlayer?.debtAmount ?? 0) > 0 || (activePlayer?.cash ?? 0) < 0) {
+          await fetch("/api/game/end-turn", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              matchId: freshMatch.id,
-              playerId: activePlayer?.id,
-              action: "BANKRUPTCY",
-              seizerId: myPlayerId,
-            }),
+            body: JSON.stringify({ matchId: freshMatch.id, playerId: myPlayerId }),
           });
         } else if (!freshMatch.hasRolled) {
           await fetch("/api/game/roll", {

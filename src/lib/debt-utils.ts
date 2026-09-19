@@ -63,8 +63,8 @@ export async function resolveForcedBankruptcy(
 ) {
   // 1. Get player and their properties
   const player = await tx.player.findUniqueOrThrow({ where: { id: debtorId } });
-  if (!player.creditorId || player.debtAmount <= 0) {
-    return; // Safety check - not in player debt
+  if (player.cash >= 0 && player.debtAmount <= 0) {
+    return; // Safety check - not in player debt or bank debt
   }
 
   const ownedTiles = await tx.matchTile.findMany({
@@ -78,8 +78,8 @@ export async function resolveForcedBankruptcy(
   
   const paymentToCreditor = Math.min(netWorth, player.debtAmount);
   
-  // 3. Pay creditor
-  if (paymentToCreditor > 0) {
+  // 3. Pay creditor (if any)
+  if (paymentToCreditor > 0 && player.creditorId) {
     await tx.player.update({
       where: { id: player.creditorId },
       data: { cash: { increment: paymentToCreditor } }
