@@ -37,25 +37,25 @@ export default function TradePlayerSelectModal({
   const otherPlayers = players.filter((p) => p.id !== myPlayerId && !p.isBankrupt);
 
   return (
-    <div className="fixed inset-0 z-[190] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-md bg-[#e3d8c4] border-4 border-[#362719] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[190] bg-black/75 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
+      <div className="w-full h-full md:h-auto md:max-w-md bg-[#e3d8c4] border-0 md:border-4 border-[#362719] rounded-none md:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[100dvh] md:max-h-[90vh] animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
-        <div className="bg-[#362719] text-[#e3d8c4] px-6 py-4 flex items-center justify-between border-b-2 border-[#20160d]">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🤝</span>
-            <div>
-              <h2 className="text-base font-black tracking-widest uppercase font-serif">
+        <div className="bg-[#362719] text-[#e3d8c4] px-4 md:px-6 py-3.5 md:py-4 flex items-center justify-between border-b-2 border-[#20160d] shrink-0">
+          <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+            <span className="text-xl md:text-2xl shrink-0">🤝</span>
+            <div className="min-w-0">
+              <h2 className="text-sm md:text-base font-black tracking-widest uppercase font-serif truncate">
                 Select Trade Partner
               </h2>
-              <p className="text-[11px] text-[#b8a992]">
+              <p className="text-[10px] md:text-[11px] text-[#b8a992] truncate">
                 Choose an active player to negotiate a trade offer
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-[#4a3420] hover:bg-[#5e4229] text-stone-300 flex items-center justify-center text-sm font-bold transition-colors"
+            className="w-8 h-8 rounded-full bg-[#4a3420] hover:bg-[#5e4229] text-stone-300 flex items-center justify-center text-sm font-bold transition-colors shrink-0"
           >
             ✕
           </button>

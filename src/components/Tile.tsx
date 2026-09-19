@@ -133,7 +133,8 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
     const dimClass = hoveredPlayerId ? "opacity-30 grayscale transition-[transform,opacity,filter] duration-300" : "";
     return (
       <div 
-        className={`w-full h-full tile-parchment flex items-center justify-center font-bold text-lg sm:text-2xl text-stone-600/75 relative transition-[transform,opacity,filter] duration-200 ${dimClass}`}
+        onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}
+        className={`w-full h-full tile-parchment flex items-center justify-center font-bold text-lg sm:text-2xl text-stone-600/75 relative cursor-pointer transition-[transform,opacity,filter] duration-200 hover:scale-[1.05] hover:z-50 ${dimClass} ${playerHoverClass}`}
       >
         ?
       </div>

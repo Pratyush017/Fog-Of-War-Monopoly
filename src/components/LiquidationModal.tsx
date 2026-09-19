@@ -136,8 +136,8 @@ export default function LiquidationModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-[#e3d8c4] border-4 border-[#8e291c] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[200] bg-black/80 backdrop-blur-md flex items-center justify-center p-0 md:p-4">
+      <div className="w-full h-full md:h-auto md:max-w-2xl bg-[#e3d8c4] border-0 md:border-4 border-[#8e291c] rounded-none md:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[100dvh] md:max-h-[90vh] animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
         <div className="bg-[#8e291c] text-[#fbf6ee] px-6 py-4 flex items-center justify-between border-b-2 border-[#5e1a12]">
@@ -294,11 +294,11 @@ export default function LiquidationModal() {
         </div>
 
         {/* Footer Actions */}
-        <div className="p-5 bg-[#362719] border-t-2 border-[#20160d] flex items-center justify-between gap-4">
+        <div className="p-4 sm:p-5 bg-[#362719] border-t-2 border-[#20160d] flex items-center justify-between gap-3 shrink-0">
           <button
             onClick={handleDeclareDefault}
             disabled={loadingAction !== null}
-            className="px-4 py-3 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700 text-red-200 text-xs font-extrabold uppercase tracking-wider transition-colors disabled:opacity-50"
+            className="px-4 py-3 rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-700 text-red-200 text-xs font-extrabold uppercase tracking-wider transition-colors disabled:opacity-50 min-h-[48px]"
           >
             Declare Total Default
           </button>
@@ -306,7 +306,7 @@ export default function LiquidationModal() {
           <button
             onClick={handleSettleDebt}
             disabled={!canSettle || loadingAction !== null}
-            className={`flex-1 py-3.5 px-6 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 ${
+            className={`flex-1 py-3.5 px-6 rounded-xl font-black text-xs sm:text-sm uppercase tracking-widest shadow-lg transition-all flex items-center justify-center gap-2 min-h-[48px] ${
               canSettle
                 ? "bg-emerald-600 hover:bg-emerald-500 text-white active:scale-[0.98] animate-pulse"
                 : "bg-stone-700 text-stone-400 cursor-not-allowed opacity-60"
@@ -316,7 +316,7 @@ export default function LiquidationModal() {
               "Settling Debt..."
             ) : (
               <>
-                <span>Settle Debt &amp; Resume Game (${totalDebt})</span>
+                <span>Settle Debt &amp; Resume (${totalDebt})</span>
                 <span className="text-lg">✓</span>
               </>
             )}

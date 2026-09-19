@@ -1,5 +1,6 @@
 "use client";
 import { useState, useCallback, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useGameStore } from "@/store/game-store";
 import { useGameSounds } from "@/hooks/useGameSounds";
 import { calculateNextActivePlayer, registerOptimisticAction } from "@/lib/game-engine";
@@ -89,6 +90,7 @@ function DiceCube({ value, rolling, spinId, index }: { value: number; rolling: b
 }
 
 export default function DiceRoller() {
+  const router = useRouter();
   const { dice, match, myPlayerId, pendingAction, setDice, clearDice, autoRollRequested, setAutoRollRequested } = useGameStore();
   const { playRoll, playJail, playNotification } = useGameSounds();
   const [fetching, setFetching] = useState(false);
@@ -459,11 +461,24 @@ export default function DiceRoller() {
           </div>
         )}
 
-        {!isMyTurn && match?.currentTurnId && (
+        {myPlayer?.isBankrupt ? (
+          <div className="flex flex-col items-center gap-2 mt-2 bg-[#1c1612]/90 border border-[#8B2500]/60 px-4 py-2.5 rounded-xl text-center shadow-lg backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-xs font-semibold text-amber-200/90 uppercase tracking-wider font-serif">
+              <span className="text-red-400">💀</span>
+              <span>Bankrupt • Spectating Match</span>
+            </div>
+            <button
+              onClick={() => router.push("/")}
+              className="text-[11px] font-sans font-medium text-amber-300/80 hover:text-amber-100 underline decoration-amber-500/40 underline-offset-2 hover:decoration-amber-300 transition-colors"
+            >
+              Leave to Main Menu
+            </button>
+          </div>
+        ) : !isMyTurn && match?.currentTurnId ? (
           <p className="text-xs text-[var(--text-muted)]">
             Waiting for other player...
           </p>
-        )}
+        ) : null}
       </div>
     </div>
   );

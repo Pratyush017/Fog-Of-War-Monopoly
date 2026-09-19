@@ -102,25 +102,25 @@ export default function LoanModal({ isOpen, onClose }: LoanModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[190] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="w-full max-w-lg bg-[#e3d8c4] border-4 border-[#362719] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 z-[190] bg-black/70 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
+      <div className="w-full h-full md:h-auto md:max-w-lg bg-[#e3d8c4] border-0 md:border-4 border-[#362719] rounded-none md:rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[100dvh] md:max-h-[90vh] animate-in fade-in zoom-in duration-200">
         
         {/* Header */}
-        <div className="bg-[#362719] text-[#e3d8c4] px-6 py-4 flex items-center justify-between border-b-2 border-[#20160d]">
-          <div className="flex items-center gap-3">
-            <span className="text-2xl">🏦</span>
-            <div>
-              <h2 className="text-base font-black tracking-widest uppercase font-serif">
+        <div className="bg-[#362719] text-[#e3d8c4] px-4 md:px-6 py-3.5 md:py-4 flex items-center justify-between border-b-2 border-[#20160d] shrink-0">
+          <div className="flex items-center gap-2.5 md:gap-3 min-w-0">
+            <span className="text-xl md:text-2xl shrink-0">🏦</span>
+            <div className="min-w-0">
+              <h2 className="text-sm md:text-base font-black tracking-widest uppercase font-serif truncate">
                 Bank of Monopoly • Credit Vault
               </h2>
-              <p className="text-[11px] text-[#b8a992]">
+              <p className="text-[10px] md:text-[11px] text-[#b8a992] truncate">
                 Borrow against your property portfolio with structured terms
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-[#4a3420] hover:bg-[#5e4229] text-stone-300 flex items-center justify-center text-sm font-bold transition-colors"
+            className="w-8 h-8 rounded-full bg-[#4a3420] hover:bg-[#5e4229] text-stone-300 flex items-center justify-center text-sm font-bold transition-colors shrink-0"
           >
             ✕
           </button>
@@ -311,10 +311,10 @@ export default function LoanModal({ isOpen, onClose }: LoanModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="p-5 bg-[#362719] border-t-2 border-[#20160d] flex items-center justify-between gap-3">
+        <div className="p-4 sm:p-5 bg-[#362719] border-t-2 border-[#20160d] flex items-center justify-between gap-3 shrink-0">
           <button
             onClick={onClose}
-            className="px-5 py-3 rounded-xl bg-[#4a3420] hover:bg-[#5e4229] text-stone-300 font-bold text-xs uppercase tracking-wider transition-colors"
+            className="px-5 py-3 rounded-xl bg-[#4a3420] hover:bg-[#5e4229] active:scale-95 text-stone-300 font-bold text-xs uppercase tracking-wider transition-colors min-h-[48px]"
           >
             Cancel
           </button>
@@ -327,7 +327,7 @@ export default function LoanModal({ isOpen, onClose }: LoanModalProps) {
               (loanTab === "NORMAL" && !tiers.find((t) => t.principal === selectedTier)?.eligible) ||
               (loanTab === "BANKRUPTCY" && (!isBankruptState || me.hasDefaulted || propertyNetWorth <= 0))
             }
-            className="flex-1 py-3.5 px-6 rounded-xl bg-[#33684a] hover:bg-[#254f38] active:scale-[0.98] text-white font-black text-sm uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            className="flex-1 py-3.5 px-6 rounded-xl bg-[#33684a] hover:bg-[#254f38] active:scale-[0.98] text-white font-black text-xs sm:text-sm uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
           >
             {loading ? "Processing..." : "Confirm & Take Loan"}
           </button>

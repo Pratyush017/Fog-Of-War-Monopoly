@@ -367,7 +367,7 @@ if (process.env.NODE_ENV !== 'production') {
           <button
             onClick={handleBuy}
             disabled={loading || !myPlayer || myPlayer.cash < propertyPrice}
-            className={`flex-1 text-[11px] font-bold uppercase tracking-wider py-2 rounded border shadow-sm transition-colors ${
+            className={`flex-1 min-h-[44px] text-xs font-black uppercase tracking-wider py-2.5 px-2 rounded-lg border shadow-sm transition-all active:scale-95 touch-manipulation flex items-center justify-center ${
               (!myPlayer || myPlayer.cash < propertyPrice) 
                 ? "bg-gray-200 text-gray-500 border-gray-300 cursor-not-allowed"
                 : "bg-[#e6f4e6] hover:bg-[#d0ebd0] text-[#1f4a1c] border-[#a3c9a0]"
@@ -378,7 +378,7 @@ if (process.env.NODE_ENV !== 'production') {
           <button
             onClick={handlePass}
             disabled={loading}
-            className="flex-1 text-[11px] font-bold uppercase tracking-wider py-2 rounded bg-[#f4e6e6] hover:bg-[#ebd0d0] text-[#4a1c1c] border border-[#c9a0a0] shadow-sm transition-colors"
+            className="flex-1 min-h-[44px] text-xs font-black uppercase tracking-wider py-2.5 px-2 rounded-lg bg-[#f4e6e6] hover:bg-[#ebd0d0] active:scale-95 text-[#4a1c1c] border border-[#c9a0a0] shadow-sm transition-all touch-manipulation flex items-center justify-center"
           >
             {loading ? "..." : (match.passUpRule === "AUCTION" ? "Auction" : "Pass")}
           </button>
@@ -416,7 +416,7 @@ if (process.env.NODE_ENV !== 'production') {
                 useGameStore.getState().setAutoRollRequested(true);
               }}
               disabled={loading}
-              className="w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded bg-emerald-800 hover:bg-emerald-700 text-white shadow-sm transition-colors flex items-center justify-center gap-1.5"
+              className="w-full min-h-[44px] text-xs font-bold uppercase tracking-wider py-3 rounded-lg bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 touch-manipulation"
             >
               🎲 Roll for Doubles (Free)
             </button>
@@ -424,7 +424,7 @@ if (process.env.NODE_ENV !== 'production') {
             <button
               onClick={() => handleJailAction("wait")}
               disabled={loading || (myPlayer?.cash ?? 0) < 50}
-              className="w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded bg-stone-200/80 hover:bg-stone-200 text-stone-800 border border-stone-300 shadow-sm transition-colors"
+              className="w-full min-h-[44px] text-xs font-bold uppercase tracking-wider py-3 rounded-lg bg-stone-200/80 hover:bg-stone-200 active:scale-95 text-stone-800 border border-stone-300 shadow-sm transition-all touch-manipulation flex items-center justify-center"
             >
               Pay $50 Maintenance
             </button>
@@ -433,7 +433,7 @@ if (process.env.NODE_ENV !== 'production') {
           <button
             onClick={() => handleJailAction("bail")}
             disabled={loading || (myPlayer?.cash ?? 0) < 75}
-            className={`w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded border shadow-sm transition-colors ${
+            className={`w-full min-h-[44px] text-xs font-bold uppercase tracking-wider py-3 rounded-lg border shadow-sm transition-all active:scale-95 touch-manipulation flex items-center justify-center ${
               (myPlayer?.cash ?? 0) >= 75
                 ? "bg-[#f4e8d3] hover:bg-white text-[#3d2915] border-[#d6ba8e]"
                 : "bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed"
@@ -482,50 +482,50 @@ export function AuctionOverlay() {
   if (!auction.active) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40" style={{ pointerEvents: "auto" }}>
-      <div className="deckled-edges parchment-card shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-sm p-6 w-full max-w-sm border-2 border-[#d4ba96] text-[#4a3420] animate-in zoom-in-95 pointer-events-auto">
-        <h3 className="text-xl font-bold text-center mb-4 uppercase tracking-widest font-serif border-b border-[#cca97f]/40 pb-3">Live Auction</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-md bg-black/40 p-4" style={{ pointerEvents: "auto" }}>
+      <div className="deckled-edges parchment-card shadow-[0_0_50px_rgba(0,0,0,0.8)] rounded-lg p-5 sm:p-6 w-full max-w-sm border-2 border-[#d4ba96] text-[#4a3420] animate-in zoom-in-95 pointer-events-auto">
+        <h3 className="text-lg sm:text-xl font-bold text-center mb-3 uppercase tracking-widest font-serif border-b border-[#cca97f]/40 pb-2">Live Auction</h3>
 
         {/* Timer bar */}
-        <div className="w-full h-2 bg-[#e4ccaa] rounded-full mb-4 overflow-hidden shadow-inner border border-[#d4ba96]">
+        <div className="w-full h-2 bg-[#e4ccaa] rounded-full mb-3 overflow-hidden shadow-inner border border-[#d4ba96]">
           <div
             className="h-full bg-gradient-to-r from-amber-600 to-red-600 transition-all duration-1000"
             style={{ width: `${(auction.timeLeft / 15) * 100}%` }}
           />
         </div>
 
-        <div className="text-center mb-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-[#7a5937]">Current Bid</p>
-          <p className="text-4xl font-mono font-black text-amber-900 drop-shadow-sm my-2">
+        <div className="text-center mb-5">
+          <p className="text-[11px] font-bold uppercase tracking-widest text-[#7a5937]">Current Bid</p>
+          <p className="text-3xl sm:text-4xl font-mono font-black text-amber-900 drop-shadow-sm my-1">
             ${auction.currentBid}
           </p>
           {auction.currentBidderName ? (
-            <p className="text-sm text-[#58412b] font-medium">
+            <p className="text-xs sm:text-sm text-[#58412b] font-medium">
               by <span className="font-bold">{auction.currentBidderName}</span>
             </p>
           ) : (
-            <p className="text-sm text-[#58412b] font-medium italic">
+            <p className="text-xs sm:text-sm text-[#58412b] font-medium italic">
               No bids yet
             </p>
           )}
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <button
             onClick={() => handleQuickBid(2)}
-            className="flex-1 btn-terracotta text-sm font-bold uppercase tracking-wider py-3 rounded transition-all active:scale-95 shadow-md"
+            className="flex-1 btn-terracotta text-xs sm:text-sm font-black uppercase tracking-wider py-3.5 min-h-[48px] rounded-lg transition-all active:scale-95 shadow-md flex items-center justify-center touch-manipulation"
           >
             +$2
           </button>
           <button
             onClick={() => handleQuickBid(10)}
-            className="flex-1 btn-terracotta text-sm font-bold uppercase tracking-wider py-3 rounded transition-all active:scale-95 shadow-md"
+            className="flex-1 btn-terracotta text-xs sm:text-sm font-black uppercase tracking-wider py-3.5 min-h-[48px] rounded-lg transition-all active:scale-95 shadow-md flex items-center justify-center touch-manipulation"
           >
             +$10
           </button>
           <button
             onClick={() => handleQuickBid(50)}
-            className="flex-1 btn-terracotta text-sm font-bold uppercase tracking-wider py-3 rounded transition-all active:scale-95 shadow-md"
+            className="flex-1 btn-terracotta text-xs sm:text-sm font-black uppercase tracking-wider py-3.5 min-h-[48px] rounded-lg transition-all active:scale-95 shadow-md flex items-center justify-center touch-manipulation"
           >
             +$50
           </button>

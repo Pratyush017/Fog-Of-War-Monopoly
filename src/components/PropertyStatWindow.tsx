@@ -343,7 +343,7 @@ if (process.env.NODE_ENV !== 'production') {
 
         {/* Control Panel (Visible only if owned by me) */}
         {isMe && tile && (
-          <div className="mt-4 pt-3 border-t border-[#cca97f]/40 flex justify-between items-center gap-1.5">
+          <div className="mt-4 pt-3 border-t border-[#cca97f]/40 flex justify-between items-center gap-2">
             {/* Upgrade */}
             <button
               onClick={() => {
@@ -355,7 +355,7 @@ if (process.env.NODE_ENV !== 'production') {
                 handleAction("UPGRADE");
               }}
               disabled={isProcessing || !isStandard || !ownsFullSet || tile.houses >= 5 || tile.isMortgaged || (players.find(p=>p.id===myPlayerId)?.cash || 0) < houseCost}
-              className="flex-1 py-1.5 rounded bg-[#f4e8d3] hover:bg-white text-[#3d2915] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center border border-[#d6ba8e] shadow-sm"
+              className="flex-1 min-h-[44px] py-2 px-1 rounded-lg bg-[#f4e8d3] hover:bg-white active:scale-95 text-[#3d2915] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-black uppercase tracking-wider flex items-center justify-center border border-[#d6ba8e] shadow-sm touch-manipulation"
               title={!ownsFullSet ? "Must own full color set to upgrade" : "Upgrade (Buy House/Hotel)"}
             >
               UP
@@ -367,7 +367,7 @@ if (process.env.NODE_ENV !== 'production') {
                 handleAction("DEGRADE");
               }}
               disabled={isProcessing || !isStandard || !ownsFullSet || tile.houses <= 0 || tile.isMortgaged}
-              className="flex-1 py-1.5 rounded bg-[#f4e8d3] hover:bg-white text-[#3d2915] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center border border-[#d6ba8e] shadow-sm"
+              className="flex-1 min-h-[44px] py-2 px-1 rounded-lg bg-[#f4e8d3] hover:bg-white active:scale-95 text-[#3d2915] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-black uppercase tracking-wider flex items-center justify-center border border-[#d6ba8e] shadow-sm touch-manipulation"
               title={!ownsFullSet ? "Must own full color set to degrade" : "Degrade (Sell House/Hotel)"}
             >
               DOWN
@@ -377,7 +377,7 @@ if (process.env.NODE_ENV !== 'production') {
               <button
                 onClick={() => handleAction("MORTGAGE")}
                 disabled={isProcessing || tile.houses > 0}
-                className="flex-1 py-1.5 rounded bg-[#f4e8d3] hover:bg-white text-[#3d2915] disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center border border-[#d6ba8e] shadow-sm"
+                className="flex-1 min-h-[44px] py-2 px-1 rounded-lg bg-[#f4e8d3] hover:bg-white active:scale-95 text-[#3d2915] disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-black uppercase tracking-wider flex items-center justify-center border border-[#d6ba8e] shadow-sm touch-manipulation"
                 title="Mortgage Property"
               >
                 LOCK
@@ -386,7 +386,7 @@ if (process.env.NODE_ENV !== 'production') {
               <button
                 onClick={() => handleAction("UNMORTGAGE")}
                 disabled={isProcessing || (players.find(p=>p.id===myPlayerId)?.cash || 0) < Math.ceil((property?.price || 0) / 2 * 1.1)}
-                className="flex-1 py-1.5 rounded bg-[#e3d1b5] hover:bg-white text-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center border border-[#c5a87b] shadow-sm"
+                className="flex-1 min-h-[44px] py-2 px-1 rounded-lg bg-[#e3d1b5] hover:bg-white active:scale-95 text-emerald-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-black uppercase tracking-wider flex items-center justify-center border border-[#c5a87b] shadow-sm touch-manipulation"
                 title={`Unmortgage ($${Math.ceil((property?.price || 0) / 2 * 1.1)})`}
               >
                 UNLOCK
@@ -396,7 +396,7 @@ if (process.env.NODE_ENV !== 'production') {
             <button
               onClick={() => handleAction("SELL")}
               disabled={isProcessing || tile.houses > 0}
-              className="flex-1 py-1.5 rounded bg-red-900/10 hover:bg-red-900/20 text-red-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors text-[10px] font-bold uppercase tracking-wider flex items-center justify-center border border-red-900/20 shadow-sm"
+              className="flex-1 min-h-[44px] py-2 px-1 rounded-lg bg-red-900/15 hover:bg-red-900/25 active:scale-95 text-red-900 disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-black uppercase tracking-wider flex items-center justify-center border border-red-900/30 shadow-sm touch-manipulation"
               title="Sell to Bank"
             >
               SELL

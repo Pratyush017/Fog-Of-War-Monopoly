@@ -52,7 +52,7 @@ export async function POST(request: Request) {
     // ── Negative balance / Debt check ──
     const isTimeExpired = match.turnEndsAt && new Date() >= match.turnEndsAt;
     if (activePlayer.cash < 0 || activePlayer.debtAmount > 0) {
-      if (isSeizure || isTimeExpired) {
+      if (isTimeExpired) {
         // Force bankruptcy because time expired while in debt!
         await prisma.$transaction(async (tx) => {
           await resolveForcedBankruptcy(tx, match.id, activePlayer.id);
@@ -68,7 +68,29 @@ export async function POST(request: Request) {
         await serverBroadcast(match.inviteCode, {
           type: "player-bankrupt",
           payload: { playerId: activePlayer.id },
+          delta: {
+            players: [{ id: activePlayer.id, isBankrupt: true, cash: 0 }]
+          }
         });
+
+        // Check if only 1 active player remains (game over)
+        const remainingActivePlayers = match.players.filter(p => !p.isBankrupt && p.id !== activePlayer.id);
+        if (remainingActivePlayers.length === 1) {
+          const winner = remainingActivePlayers[0];
+          await logGameEvent(match.id, match.inviteCode, `🏆 ${winner.name} wins the game!`, "info");
+          await Promise.all([
+            serverBroadcast(match.inviteCode, {
+              type: "game-over",
+              payload: { winnerId: winner.id, winnerName: winner.name },
+              delta: { match: { status: "FINISHED", currentTurnId: null } }
+            }),
+            prisma.match.update({
+              where: { id: matchId },
+              data: { status: "FINISHED", currentTurnId: null }
+            })
+          ]);
+          return NextResponse.json({ success: true, isGameOver: true, winnerId: winner.id });
+        }
       } else {
         return NextResponse.json(
           { error: "Cannot end turn while in debt. Mortgage or sell properties to clear your debt, or declare bankruptcy." },
