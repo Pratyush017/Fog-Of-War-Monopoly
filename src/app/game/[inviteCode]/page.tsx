@@ -275,18 +275,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
           revealTile(
             event.payload.boardIndex,
             event.payload.propertyId,
-            event.payload.ownerId,
-            {
-              id: event.payload.propertyId,
-              name: event.payload.propertyName,
-              colorSet: event.payload.colorSet,
-              price: 0,
-              rent: [0],
-              houseCost: 0,
-              originalMortgage: 0,
-              isUtility: false,
-              isTransit: false,
-            }
+            event.payload.ownerId
           );
           
           // Check for set completion

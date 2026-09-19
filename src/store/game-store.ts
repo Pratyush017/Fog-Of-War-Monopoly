@@ -123,7 +123,7 @@ interface GameStore {
   tiles: ClientTile[];
   setTiles: (tiles: ClientTile[]) => void;
   updateTile: (boardIndex: number, partial: Partial<ClientTile>) => void;
-  revealTile: (boardIndex: number, propertyId: string, ownerId: string, property: Property) => void;
+  revealTile: (boardIndex: number, propertyId: string, ownerId: string) => void;
   revealAllLocally: () => void;
 
   // Dice
@@ -245,11 +245,11 @@ export const useGameStore = create<GameStore>((set, get) => ({
         t.boardIndex === boardIndex ? { ...t, ...partial } : t
       ),
     })),
-  revealTile: (boardIndex, propertyId, ownerId, property) =>
+  revealTile: (boardIndex, propertyId, ownerId) =>
     set((state) => ({
       tiles: state.tiles.map((t) =>
         t.boardIndex === boardIndex
-          ? { ...t, isRevealed: true, propertyId, ownerId, property }
+          ? { ...t, isRevealed: true, propertyId, ownerId }
           : t
       ),
     })),
