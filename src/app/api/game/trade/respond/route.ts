@@ -88,10 +88,10 @@ export async function POST(request: Request) {
         }
 
         // Check Cash Balances
-        if (freshOffering.cash < offeredCash) {
+        if (offeredCash > 0 && freshOffering.cash < offeredCash) {
           throw new Error(`${freshOffering.name} no longer has sufficient cash ($${freshOffering.cash} < $${offeredCash}).`);
         }
-        if (freshTarget.cash < requestedCash) {
+        if (requestedCash > 0 && freshTarget.cash < requestedCash) {
           throw new Error(`${freshTarget.name} no longer has sufficient cash ($${freshTarget.cash} < $${requestedCash}).`);
         }
 

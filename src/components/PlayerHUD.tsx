@@ -216,9 +216,9 @@ export default function PlayerHUD() {
       {/* Initiate Trade Button */}
       <button 
         onClick={() => { setIsTradeSelectOpen(true); setIsMobileBankOpen(false); }}
-        disabled={!isMyTurn || (me?.isLiquidating ?? false) || (me?.isBankrupt ?? false) || ((me?.debtAmount ?? 0) > 0) || ((me?.loanPrincipal ?? 0) > 0)}
+        disabled={!isMyTurn || (me?.isLiquidating ?? false) || (me?.isBankrupt ?? false)}
         className={`w-full group px-3 py-3 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm min-h-[48px] ${
-          isMyTurn && !me?.isLiquidating && !me?.isBankrupt && !((me?.debtAmount ?? 0) > 0) && !((me?.loanPrincipal ?? 0) > 0)
+          isMyTurn && !me?.isLiquidating && !me?.isBankrupt
             ? "bg-[#dbe5f0] border-[#a3bdd6] hover:bg-[#cddbec] active:scale-[0.98]" 
             : "bg-[#dbe5f0]/60 border-[#a3bdd6]/60 opacity-60 cursor-not-allowed"
         }`}
@@ -231,7 +231,7 @@ export default function PlayerHUD() {
             <line x1="3" y1="21" x2="10" y2="14"/>
           </svg>
           <span className="text-[13px] font-bold text-[#1a1a1a]">
-            {((me?.debtAmount ?? 0) > 0) || ((me?.loanPrincipal ?? 0) > 0) ? "Trade Locked (Debt/Loan)" : "Initiate Trade"}
+            Initiate Trade
           </span>
         </div>
         <span className="text-[10px] font-bold px-2.5 py-1 rounded-[6px] bg-[#c4d5e6] text-[#2c5e8a] border border-[#a3bdd6] uppercase tracking-wider">

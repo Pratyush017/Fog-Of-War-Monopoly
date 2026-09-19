@@ -43,7 +43,7 @@ export default function PropertyStatWindow() {
 
   // If no tile selected or invalid index, still render but keep it hidden for animation
   const tile = selectedTileIndex !== null ? tiles.find((t) => t.boardIndex === selectedTileIndex) : null;
-  const isVisible = selectedTileIndex !== null && tile?.property;
+  const isVisible = selectedTileIndex !== null && tile?.property && tile?.isRevealed;
 
   // Derive data
   const property = tile?.property;

@@ -52,28 +52,28 @@ export async function POST(request: Request) {
     }
 
     // ── 2. TRADE LOCK ENFORCEMENT ──
-    // Indebted players (loanPrincipal > 0 OR debtAmount > 0) cannot offer properties, only cash.
-    if ((offeringPlayer.loanPrincipal > 0 || offeringPlayer.debtAmount > 0) && offeredPropertyTileIds.length > 0) {
+    // Players with a bank loan (loanPrincipal > 0) cannot offer properties, only cash.
+    if (offeringPlayer.loanPrincipal > 0 && offeredPropertyTileIds.length > 0) {
       return NextResponse.json(
-        { error: "Trade Lock Active: You are in debt and cannot trade properties (cash only)!" },
+        { error: "Trade Lock Active: You have an active loan and cannot trade properties (cash only)!" },
         { status: 403 }
       );
     }
-    if ((targetPlayer.loanPrincipal > 0 || targetPlayer.debtAmount > 0) && requestedPropertyTileIds.length > 0) {
+    if (targetPlayer.loanPrincipal > 0 && requestedPropertyTileIds.length > 0) {
       return NextResponse.json(
-        { error: `Trade Lock Active: ${targetPlayer.name} is in debt and cannot trade properties!` },
+        { error: `Trade Lock Active: ${targetPlayer.name} has an active loan and cannot trade properties!` },
         { status: 403 }
       );
     }
 
     // ── 3. CASH BALANCE CHECK ──
-    if (offeredCash < 0 || offeringPlayer.cash < offeredCash) {
+    if (offeredCash < 0 || (offeredCash > 0 && offeringPlayer.cash < offeredCash)) {
       return NextResponse.json(
         { error: `You do not have enough cash ($${offeringPlayer.cash}) to offer $${offeredCash}` },
         { status: 400 }
       );
     }
-    if (requestedCash < 0 || targetPlayer.cash < requestedCash) {
+    if (requestedCash < 0 || (requestedCash > 0 && targetPlayer.cash < requestedCash)) {
       return NextResponse.json(
         { error: `${targetPlayer.name} does not have $${requestedCash} cash` },
         { status: 400 }
