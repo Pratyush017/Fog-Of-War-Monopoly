@@ -16,7 +16,7 @@ const getAvatarImage = (id: string | null) => {
   // eslint-disable-next-line @next/next/no-img-element
   return <img src={`/avatars/${id}.svg`} alt={id} className="w-5 h-5" />;
 };
-function AnimatedCash({ cash }: { cash: number }) {
+function AnimatedCash({ cash, className = "text-[16px]" }: { cash: number, className?: string }) {
   const prevCash = useRef(cash);
   const [flash, setFlash] = useState<"up" | "down" | null>(null);
 
@@ -35,7 +35,7 @@ function AnimatedCash({ cash }: { cash: number }) {
   }, [cash]);
 
   return (
-    <div className={`text-[16px] font-black tracking-tight transition-all duration-500 ease-out transform
+    <div className={`${className} font-black tracking-tight transition-all duration-500 ease-out transform
       ${cash < 0 ? 'text-red-800' : 'text-[#1a1a1a]'}
       ${flash === "up" ? 'text-emerald-500 drop-shadow-[0_0_12px_rgba(16,185,129,1)] scale-110 -translate-y-0.5' : ''}
       ${flash === "down" ? 'text-rose-600 drop-shadow-[0_0_12px_rgba(225,29,72,1)] scale-95 translate-y-0.5' : ''}
@@ -94,7 +94,7 @@ export default function PlayerHUD() {
   };
 
   const renderPlayersList = () => (
-    <div className="space-y-1.5">
+    <div className="grid grid-cols-2 gap-1.5">
       {sortedPlayers.map((player) => {
         const isCurrentTurn = match?.currentTurnId === player.id;
         const isMe = player.id === myPlayerId;
@@ -116,8 +116,8 @@ export default function PlayerHUD() {
             };
 
         const baseClasses = isCurrentTurn 
-          ? "p-2.5 rounded-lg border shadow-sm transition-all duration-200"
-          : "p-2.5 rounded-lg border hover:brightness-95 transition-all duration-200 cursor-pointer";
+          ? "p-2 rounded-lg border shadow-sm transition-all duration-200"
+          : "p-2 rounded-lg border hover:brightness-95 transition-all duration-200 cursor-pointer";
 
         const hasActiveLoan = player.loanPrincipal > 0;
         const turnsRemaining = Math.max(0, (player.loanDeadlineTurn ?? 0) - player.turnsPlayed);
@@ -125,46 +125,52 @@ export default function PlayerHUD() {
         return (
           <div 
             key={player.id} 
-            className={`${baseClasses} ${player.isBankrupt ? 'opacity-40 grayscale' : ''}`}
+            className={`${baseClasses} ${player.isBankrupt ? 'opacity-40 grayscale' : ''} flex flex-col gap-1 relative overflow-hidden`}
             style={cardStyle}
             onMouseEnter={() => setHoveredPlayerId(player.id)}
             onMouseLeave={() => setHoveredPlayerId(null)}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div 
-                  className={`w-9 h-9 rounded-[8px] border-2 border-[#3d2e22] shadow-inner flex items-center justify-center transition-colors shrink-0`}
-                  style={{ backgroundColor: getAvatarColor(player.avatar) }}
-                >
-                  {getAvatarImage(player.avatar)}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    {isCurrentTurn && <span className={`w-2 h-2 rounded-full animate-pulse shadow-md`} style={{ backgroundColor: pColor, boxShadow: `0 0 5px ${pColor}` }}></span>}
-                    <span className={`text-[13px] font-black tracking-tight text-[#1a1a1a]`}>
-                      {player.name} {isMe && "(You)"}
-                    </span>
-                    {isCurrentTurn && <span className={`ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wider`} style={{ backgroundColor: `${pColor}33`, color: pColor, border: `1px solid ${pColor}80` }}>TURN</span>}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[11.5px] font-semibold text-[#5a5a5a]">{ownedCount} Properties</span>
-                    {player.isLiquidating ? (
-                      <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-red-600 text-white animate-pulse">
-                        🚨 LIQUIDATING
-                      </span>
-                    ) : hasActiveLoan ? (
-                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-700/20 text-amber-900 border border-amber-800/30">
-                        🏦 ${player.loanPrincipal + player.loanInterest} ({turnsRemaining}t)
-                      </span>
-                    ) : null}
-                  </div>
-                </div>
+            {/* Top row: Avatar & Name */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <div 
+                className={`w-6 h-6 rounded border border-[#3d2e22] shadow-inner flex items-center justify-center shrink-0`}
+                style={{ backgroundColor: pColor }}
+              >
+                <div className="scale-75">{getAvatarImage(player.avatar)}</div>
               </div>
-              <div className="text-right shrink-0">
-                <AnimatedCash cash={player.cash} />
-                <div className="font-mono text-[10px] font-bold text-[#5a5a5a] tracking-tight">Net: ${netWorth.toLocaleString()}</div>
+              <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
+                 <span className={`text-[11px] font-black tracking-tight text-[#1a1a1a] truncate`} title={player.name}>
+                   {player.name}
+                 </span>
+                 {isCurrentTurn && <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0`} style={{ backgroundColor: pColor }}></span>}
               </div>
             </div>
+
+            {/* Bottom row: Props & Cash */}
+            <div className="flex items-end justify-between mt-1">
+               <div className="text-[9px] font-bold text-[#5a5a5a] leading-tight pb-[2px]">
+                 {ownedCount} <span className="opacity-70 font-semibold">Prop{ownedCount !== 1 && 's'}</span>
+               </div>
+               <div className="text-right">
+                 <AnimatedCash cash={player.cash} className="text-[13px]" />
+                 <div className="font-mono text-[8px] font-bold text-[#6a6a6a] tracking-tight -mt-0.5">Net: ${netWorth.toLocaleString()}</div>
+               </div>
+            </div>
+
+            {/* Badges row */}
+            {(player.isLiquidating || hasActiveLoan) && (
+              <div className="mt-0.5">
+                 {player.isLiquidating ? (
+                   <span className="text-[8px] font-black px-1 py-0.5 rounded bg-red-600 text-white animate-pulse block text-center w-full">
+                     LIQUIDATING
+                   </span>
+                 ) : hasActiveLoan ? (
+                   <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-amber-700/20 text-amber-900 border border-amber-800/30 block text-center w-full">
+                     LOAN: ${player.loanPrincipal + player.loanInterest} ({turnsRemaining}t)
+                   </span>
+                 ) : null}
+              </div>
+            )}
           </div>
         );
       })}
