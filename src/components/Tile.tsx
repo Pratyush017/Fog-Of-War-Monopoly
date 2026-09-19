@@ -230,17 +230,17 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
         </div>
       ) : null}
 
-      {/* Property Name */}
-      <span className={`text-[9px] font-bold text-stone-200 mt-1 leading-tight text-center ${flagUrl ? paddingClass : ""}`}>
-        {textName}
-      </span>
-      
-      {/* Upgrade Indicator (below name, replaces rent badge) */}
-      {tile.houses > 0 ? (
-        <span className="text-[10px] font-bold text-amber-300 mt-0.5 leading-none">
-          {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
+      {/* Property Name + Upgrade Indicator */}
+      <div className={`flex flex-col items-center ${flagUrl ? paddingClass : ""}`}>
+        <span className="text-[9px] font-bold text-stone-200 mt-1 leading-tight text-center">
+          {textName}
         </span>
-      ) : null}
+        {tile.houses > 0 && (
+          <span className="text-[8px] font-bold text-amber-300 leading-none">
+            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
+          </span>
+        )}
+      </div>
 
       {/* Mortgaged Lock Icon */}
       {isMortgaged && (
