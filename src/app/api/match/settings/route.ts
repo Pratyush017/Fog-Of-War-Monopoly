@@ -40,6 +40,7 @@ export async function POST(request: Request) {
         mortgageRule: (updateData.mortgageRule as string) ?? match.mortgageRule,
         passUpRule: (updateData.passUpRule as string) ?? match.passUpRule,
         evenBuild: (updateData.evenBuild as boolean) ?? match.evenBuild,
+        enableBank: (updateData.enableBank as boolean) ?? match.enableBank ?? true,
         gameMode: (updateData.gameMode as 'CLASSIC' | 'FOG_OF_WAR') ?? match.gameMode,
       },
     });

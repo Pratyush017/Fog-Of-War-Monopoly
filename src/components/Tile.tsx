@@ -115,6 +115,26 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
     // Dim Chance/Chest/Tax when a player is hovered
     const nonPropHoverDim = hoveredPlayerId ? "opacity-30 grayscale  transition-[transform,opacity,filter] duration-300" : "";
 
+    if (tile.tileType === 'TAX') {
+      const isIncomeTax = tile.boardIndex === 4;
+      return (
+        <div 
+          className={`w-full h-full flex flex-col items-center justify-center cursor-pointer relative transition-[transform,opacity,filter] duration-200 hover:scale-[1.05] hover:z-50 tile-dark-gold text-stone-900 ${nonPropHoverDim}`}
+          onClick={(e) => { e.stopPropagation(); setSelectedTileIndex(tile.boardIndex); }}
+        >
+          <span className="font-bold text-[8px] sm:text-[10px] leading-tight text-center">
+            {isIncomeTax ? "INCOME" : "LUXURY"}
+          </span>
+          <span className="font-black text-[11px] sm:text-[13px] leading-tight">
+            TAX
+          </span>
+          <span className="font-bold text-[8px] sm:text-[10px] leading-tight text-stone-700">
+            {isIncomeTax ? "15%" : "$100"}
+          </span>
+        </div>
+      );
+    }
+
     return (
       <div 
         className={`w-full h-full flex items-center justify-center cursor-pointer relative transition-[transform,opacity,filter] duration-200 hover:scale-[1.05] hover:z-50  ${data.class} ${nonPropHoverDim}`}

@@ -5,7 +5,7 @@ import type { RealtimeChannel } from "@supabase/supabase-js";
 export type GameEventPayload =
   | { type: "player-joined"; payload: { playerId: string; name: string; avatar?: string; color?: string } }
   | { type: "player-left"; payload: { playerId: string } }
-  | { type: "settings-updated"; payload: { startingCash: number; mortgageRule: string; passUpRule: string; evenBuild: boolean; gameMode: 'CLASSIC' | 'FOG_OF_WAR' } }
+  | { type: "settings-updated"; payload: { startingCash: number; mortgageRule: string; passUpRule: string; evenBuild: boolean; enableBank?: boolean; gameMode: 'CLASSIC' | 'FOG_OF_WAR' } }
   | { type: "game-started"; payload: { currentTurnId: string; turnEndsAt?: string; hasRolled?: boolean; } }
   | { type: "dice-rolled"; payload: { playerId: string; dice: [number, number]; isDoubles: boolean; hasRolled?: boolean; newPosition?: number } }
   | { type: "player-moved"; payload: { playerId: string; from: number; to: number; passedGo: boolean } }

@@ -17,6 +17,7 @@ interface MatchSettings {
   mortgageRule: string;
   passUpRule: string;
   evenBuild: boolean;
+  enableBank: boolean;
   gameMode: 'CLASSIC' | 'FOG_OF_WAR';
 }
 
@@ -34,6 +35,7 @@ export default function LobbyPage({ params }: { params: Promise<{ inviteCode: st
     mortgageRule: "ORIGINAL",
     passUpRule: "HIDDEN",
     evenBuild: true,
+    enableBank: true,
     gameMode: "FOG_OF_WAR",
   });
   const [matchId, setMatchId] = useState("");
@@ -61,6 +63,7 @@ export default function LobbyPage({ params }: { params: Promise<{ inviteCode: st
         mortgageRule: match.mortgageRule,
         passUpRule: match.passUpRule,
         evenBuild: match.evenBuild,
+        enableBank: match.enableBank ?? true,
         gameMode: match.gameMode || "FOG_OF_WAR",
       });
 
@@ -101,7 +104,11 @@ export default function LobbyPage({ params }: { params: Promise<{ inviteCode: st
           });
           break;
         case "settings-updated":
-          setSettings(event.payload);
+          setSettings((prev) => ({ 
+            ...prev, 
+            ...event.payload, 
+            enableBank: event.payload.enableBank ?? prev.enableBank 
+          }));
           break;
         case "game-started":
           router.push(`/game/${inviteCode}`);
@@ -397,6 +404,30 @@ export default function LobbyPage({ params }: { params: Promise<{ inviteCode: st
                 </button>
               ) : (
                 <div className="text-xs font-bold text-[#694e32]">{settings.evenBuild ? "Enabled" : "Disabled"}</div>
+              )}
+            </div>
+
+            {/* Bank Loans Rule Toggle */}
+            <div className="bg-[#f2e5c8] text-[#412c17] rounded p-2.5 flex items-center justify-between border border-[#ddcaa2] shadow-sm">
+              <div>
+                <div className="text-xs font-bold uppercase tracking-wider text-[#35210f]">Bank Loans</div>
+                <div className="text-[11px] text-[#694e32]">
+                  {settings.enableBank ? "Enabled (Default)" : "Disabled"}
+                </div>
+              </div>
+              {isHost ? (
+                <button 
+                  className={`w-12 h-6 rounded-full p-0.5 border transition-colors relative flex items-center ${settings.enableBank ? "bg-[#492e1b] border-[#684126]" : "bg-gray-600 border-gray-700"}`}
+                  onClick={() => {
+                    const newVal = !settings.enableBank;
+                    handleLocalSettingChange("enableBank", newVal);
+                    syncSettingToBackend("enableBank", newVal);
+                  }}
+                >
+                  <span className={`w-5 h-5 rounded-full bg-[#ecd5a8] shadow-md transform transition-transform ${settings.enableBank ? "translate-x-6" : "translate-x-0.5"}`}></span>
+                </button>
+              ) : (
+                <div className="text-xs font-bold text-[#694e32]">{settings.enableBank ? "Enabled" : "Disabled"}</div>
               )}
             </div>
           </div>
