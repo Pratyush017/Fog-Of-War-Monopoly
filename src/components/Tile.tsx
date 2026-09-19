@@ -162,7 +162,7 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
 
   let flagPlacement = "";
   let rentPlacement = "";
-  let paddingClass = "";
+  let textPlacement = "";
 
   const idx = tile.boardIndex;
   
@@ -171,22 +171,22 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
     // Top Row: Flag on Bottom (Inside), Rent on Top (Outside)
     flagPlacement = "-bottom-3 left-1/2 -translate-x-1/2";
     rentPlacement = "-top-2 left-1/2 -translate-x-1/2";
-    paddingClass = "pb-4 pt-1";
+    textPlacement = "top-1 left-0 w-full px-1";
   } else if (idx >= 11 && idx <= 19) {
     // Right Column: Flag on Left (Inside), Rent on Right (Outside)
     flagPlacement = "-left-3 top-1/2 -translate-y-1/2 flex-col";
     rentPlacement = "-right-2 top-1/2 -translate-y-1/2";
-    paddingClass = "pl-4 pr-1";
+    textPlacement = "right-1 top-1/2 -translate-y-1/2 w-[calc(100%-16px)] px-1";
   } else if (idx >= 21 && idx <= 29) {
     // Bottom Row: Flag on Top (Inside), Rent on Bottom (Outside)
     flagPlacement = "-top-3 left-1/2 -translate-x-1/2";
     rentPlacement = "-bottom-2 left-1/2 -translate-x-1/2";
-    paddingClass = "pt-4 pb-1";
+    textPlacement = "bottom-1 left-0 w-full px-1";
   } else if (idx >= 31 && idx <= 39) {
     // Left Column: Flag on Right (Inside), Rent on Left (Outside)
     flagPlacement = "-right-3 top-1/2 -translate-y-1/2 flex-col";
     rentPlacement = "-left-2 top-1/2 -translate-y-1/2";
-    paddingClass = "pr-4 pl-1";
+    textPlacement = "left-1 top-1/2 -translate-y-1/2 w-[calc(100%-16px)] px-1";
   }
 
   const isMortgaged = tile.isMortgaged;
@@ -230,10 +230,17 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
         </div>
       ) : null}
 
-      {/* Property Name */}
-      <span className={`text-[10px] font-bold text-stone-200 mt-1 leading-tight text-center drop-shadow-sm ${flagUrl ? paddingClass : ""}`}>
-        {textName}
-      </span>
+      {/* Text Container (Name + Upgrade Indicator) */}
+      <div className={`absolute flex flex-col items-center justify-center pointer-events-none ${textPlacement}`}>
+        <span className="text-[10px] font-bold text-stone-200 leading-tight text-center drop-shadow-md">
+          {textName}
+        </span>
+        {tile.houses > 0 && (
+          <span className="text-[12px] font-black text-amber-400 leading-none mt-0.5 drop-shadow-md">
+            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
+          </span>
+        )}
+      </div>
 
       {/* Mortgaged Lock Icon */}
       {isMortgaged && (
@@ -253,15 +260,6 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
           style={{ backgroundColor: ownerColor }}
           title={`Owned by ${owner.name}`}
         ></div>
-      )}
-
-      {/* Upgrade Indicator (Restored to outer edge, bigger) */}
-      {tile.houses > 0 && (
-        <div className={`absolute z-40 pointer-events-none ${rentPlacement}`}>
-          <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-stone-900/90 backdrop-blur-md border-[1.5px] border-amber-500 text-amber-400 whitespace-nowrap shadow-lg flex items-center justify-center drop-shadow-md">
-            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
-          </span>
-        </div>
       )}    </div>
   );
 });
