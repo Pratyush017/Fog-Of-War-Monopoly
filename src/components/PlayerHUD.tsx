@@ -288,8 +288,8 @@ export default function PlayerHUD() {
         {/* Main Content Wrapper */}
         <div className="flex-1 flex flex-col space-y-4 px-1 min-h-0">
           {/* 1. PLAYERS SECTION */}
-          <section className="space-y-2 shrink-0">
-            <div className="flex items-center justify-between px-1">
+          <section className="flex flex-col space-y-2 shrink-0 max-h-[45vh]">
+            <div className="flex items-center justify-between px-1 shrink-0">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#4a4a4a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
@@ -303,7 +303,9 @@ export default function PlayerHUD() {
                 {activeCount} ACTIVE
               </span>
             </div>
-            {renderPlayersList()}
+            <div className="overflow-y-auto custom-scrollbar min-h-0 pr-1 pb-1 space-y-1.5">
+              {renderPlayersList()}
+            </div>
           </section>
 
           {/* 2. BANK VAULT SECTION */}
