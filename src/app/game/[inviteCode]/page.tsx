@@ -8,6 +8,7 @@ import { subscribeToMatch, unsubscribeFromMatch, type GameEvent } from "@/lib/su
 import Board from "@/components/Board";
 import IncomingTradeModal from "@/components/IncomingTradeModal";
 import { AuctionOverlay } from "@/components/ActionPanel";
+import GameOverScreen from "@/components/GameOverScreen";
 
 export default function GamePage({ params }: { params: Promise<{ inviteCode: string }> }) {
   const { inviteCode } = use(params);
@@ -515,28 +516,6 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
     );
   }
 
-  if (gameOver) {
-    const isWinner = gameOver.winnerId === sessionStorage.getItem("playerId");
-    return (
-      <div className="animated-bg min-h-screen flex items-center justify-center">
-        <div className="glass-card p-12 text-center max-w-md">
-          <div className="text-6xl mb-6">{isWinner ? "🏆" : "🎮"}</div>
-          <h1 className="text-3xl font-black text-glow mb-4">
-            {isWinner ? "You Win!" : "Game Over"}
-          </h1>
-          <p className="text-lg text-[var(--text-secondary)] mb-8">
-            {isWinner
-              ? "Congratulations! You dominated the fog!"
-              : `${gameOver.winnerName} wins the game!`}
-          </p>
-          <button onClick={() => router.push("/")} className="btn-primary px-8 py-3">
-            Back to Home
-          </button>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-screen w-screen flex flex-col body-texture overflow-hidden selection:bg-amber-800 selection:text-white text-stone-800">
       {/* Board */}
@@ -546,6 +525,7 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
       {/* Global Overlays */}
       <IncomingTradeModal />
       <AuctionOverlay />
+      {gameOver && <GameOverScreen gameOver={gameOver} />}
     </div>
   );
 }
