@@ -175,7 +175,7 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
   } else if (idx >= 11 && idx <= 19) {
     // Right Column: Flag on Left (Inside), Rent on Right (Outside)
     flagPlacement = "-left-3 top-1/2 -translate-y-1/2 flex-col";
-    rentPlacement = "-right-2 top-2";
+    rentPlacement = "-right-2 top-1/2 -translate-y-1/2";
     paddingClass = "pl-4 pr-1";
   } else if (idx >= 21 && idx <= 29) {
     // Bottom Row: Flag on Top (Inside), Rent on Bottom (Outside)
@@ -185,7 +185,7 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
   } else if (idx >= 31 && idx <= 39) {
     // Left Column: Flag on Right (Inside), Rent on Left (Outside)
     flagPlacement = "-right-3 top-1/2 -translate-y-1/2 flex-col";
-    rentPlacement = "-left-2 top-2";
+    rentPlacement = "-left-2 top-1/2 -translate-y-1/2";
     paddingClass = "pr-4 pl-1";
   }
 
@@ -230,17 +230,10 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
         </div>
       ) : null}
 
-      {/* Property Name + Upgrade Indicator */}
-      <div className={`flex flex-col items-center ${flagUrl ? paddingClass : ""}`}>
-        <span className="text-[9px] font-bold text-stone-200 mt-1 leading-tight text-center">
-          {textName}
-        </span>
-        {tile.houses > 0 && (
-          <span className="text-[8px] font-bold text-amber-300 leading-none">
-            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
-          </span>
-        )}
-      </div>
+      {/* Property Name */}
+      <span className={`text-[10px] font-bold text-stone-200 mt-1 leading-tight text-center drop-shadow-sm ${flagUrl ? paddingClass : ""}`}>
+        {textName}
+      </span>
 
       {/* Mortgaged Lock Icon */}
       {isMortgaged && (
@@ -261,7 +254,15 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
           title={`Owned by ${owner.name}`}
         ></div>
       )}
-    </div>
+
+      {/* Upgrade Indicator (Restored to outer edge, bigger) */}
+      {tile.houses > 0 && (
+        <div className={`absolute z-40 pointer-events-none ${rentPlacement}`}>
+          <span className="text-[12px] font-black px-1.5 py-0.5 rounded bg-stone-900/90 backdrop-blur-md border-[1.5px] border-amber-500 text-amber-400 whitespace-nowrap shadow-lg flex items-center justify-center drop-shadow-md">
+            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
+          </span>
+        </div>
+      )}    </div>
   );
 });
 
