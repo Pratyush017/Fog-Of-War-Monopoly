@@ -254,9 +254,9 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
             if (event.payload.hasRolled !== undefined) {
               updateMatch({ hasRolled: event.payload.hasRolled });
             }
-            if (event.payload.newPosition !== undefined) {
-              updatePlayer(event.payload.playerId, { position: event.payload.newPosition });
-            }
+            // Position is set exclusively by the "player-moved" handler to avoid
+            // race conditions that cause slingshot animation (dice-rolled timeout
+            // fires after player-moved and snaps piece back to the dice-landed tile).
           }, 550);
           break;
         }
