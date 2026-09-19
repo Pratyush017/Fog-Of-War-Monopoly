@@ -119,11 +119,16 @@ export default function DiceRoller() {
     const start = performance.now();
     (window as any)._lastAction = { type: 'roll', start, actionId };
 
-    // If we already know we're in jail locally with >= $200 cash, prompt for jail choice (otherwise roll for free)
-    if (player?.inJail && (player?.cash ?? 0) >= 200) {
+    const jailDecisionRequested = store.jailDecisionRequested;
+
+    // If we already know we're in jail locally with >= $200 cash, prompt for jail choice (unless they already made one)
+    if (player?.inJail && (player?.cash ?? 0) >= 200 && !jailDecisionRequested) {
       store.setPendingAction({ type: "jail-choice" });
       return null;
     }
+
+    // Clear it so it doesn't leak into future rolls
+    store.setJailDecisionRequested(null);
 
     // Disable button and start animation
     setIsRolling(true);
@@ -148,7 +153,7 @@ export default function DiceRoller() {
       const res = await fetch("/api/game/roll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, actionId, isAutoRoll }),
+        body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, actionId, isAutoRoll, jailDecision: jailDecisionRequested }),
       });
 
       const data = await res.json();

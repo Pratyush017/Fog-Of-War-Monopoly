@@ -7,7 +7,7 @@ import { logGameEvent } from "@/lib/logger";
 export async function POST(request: Request) {
   try {
     const serverReceivedTime = Date.now();
-    const { matchId, playerId, actionId, isAutoRoll } = await request.json();
+    const { matchId, playerId, actionId, isAutoRoll, jailDecision } = await request.json();
 
     const match = await prisma.match.findUnique({
       where: { id: matchId },
@@ -48,17 +48,30 @@ export async function POST(request: Request) {
     const wasInJail = player.inJail;
     let isFreedFromJail = false;
     let newJailTurns = player.jailTurns;
+    let jailFee = 0;
 
     if (wasInJail) {
-      if (player.cash >= 200) {
+      if (player.cash >= 200 && !jailDecision) {
         return NextResponse.json({
           requiresJailDecision: true,
           jailTurns: player.jailTurns,
         });
       }
 
-      // Player has < $200: Can roll for free
-      // Freed if rolls doubles OR if this is their 3rd turn (jailTurns + 1 >= 3)
+      if (jailDecision === "bail") {
+        if (player.cash < 75) return NextResponse.json({ error: "Not enough cash for bail" }, { status: 400 });
+        isFreedFromJail = true;
+        newJailTurns = 0;
+        jailFee = 75;
+        await logGameEvent(match.id, match.inviteCode, `${player.name} paid $75 bail and is freed from Jail.`, "jail");
+      } else if (jailDecision === "maintenance" || player.cash < 200) {
+        if (player.cash >= 200) {
+          jailFee = 50;
+          await logGameEvent(match.id, match.inviteCode, `${player.name} paid $50 maintenance to roll.`, "jail");
+        } else {
+           await logGameEvent(match.id, match.inviteCode, `${player.name} is rolling for free (maintenance waived).`, "jail");
+        }
+      }
     }
 
     // ── Negative balance / Debt check ──
@@ -174,6 +187,7 @@ export async function POST(request: Request) {
             data: {
               jailTurns: newJailTurns,
               position: 10,
+              cash: jailFee > 0 ? { decrement: jailFee } : undefined,
             },
           });
 
@@ -189,7 +203,7 @@ export async function POST(request: Request) {
               hasRolled: true,
             },
             delta: {
-              players: [{ id: playerId, jailTurns: newJailTurns, inJail: true, position: 10 }],
+              players: [{ id: playerId, jailTurns: newJailTurns, inJail: true, position: 10, cash: player.cash - jailFee }],
               match: { hasRolled: true },
             }
           });
@@ -204,7 +218,7 @@ export async function POST(request: Request) {
         }
 
         // ── Update player position ──
-        let cashChange = 0;
+        let cashChange = -jailFee;
         
         if (landedOnGo) {
           cashChange += 400; // Landed on Go

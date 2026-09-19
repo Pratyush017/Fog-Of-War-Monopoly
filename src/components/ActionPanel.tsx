@@ -422,16 +422,26 @@ if (process.env.NODE_ENV !== 'production') {
             </button>
           ) : (
             <button
-              onClick={() => handleJailAction("wait")}
+              onClick={() => {
+                setPendingAction(null);
+                const store = useGameStore.getState();
+                store.setJailDecisionRequested("maintenance");
+                store.setAutoRollRequested(true);
+              }}
               disabled={loading || (myPlayer?.cash ?? 0) < 50}
               className="w-full min-h-[44px] text-xs font-bold uppercase tracking-wider py-3 rounded-lg bg-stone-200/80 hover:bg-stone-200 active:scale-95 text-stone-800 border border-stone-300 shadow-sm transition-all touch-manipulation flex items-center justify-center"
             >
-              Pay $50 Maintenance
+              Pay $50 Maintenance & Roll
             </button>
           )}
 
           <button
-            onClick={() => handleJailAction("bail")}
+            onClick={() => {
+              setPendingAction(null);
+              const store = useGameStore.getState();
+              store.setJailDecisionRequested("bail");
+              store.setAutoRollRequested(true);
+            }}
             disabled={loading || (myPlayer?.cash ?? 0) < 75}
             className={`w-full min-h-[44px] text-xs font-bold uppercase tracking-wider py-3 rounded-lg border shadow-sm transition-all active:scale-95 touch-manipulation flex items-center justify-center ${
               (myPlayer?.cash ?? 0) >= 75

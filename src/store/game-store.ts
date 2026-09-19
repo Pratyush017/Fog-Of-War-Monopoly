@@ -198,6 +198,9 @@ interface GameStore {
   autoRollRequested: boolean;
   setAutoRollRequested: (val: boolean) => void;
 
+  jailDecisionRequested: "maintenance" | "bail" | null;
+  setJailDecisionRequested: (val: "maintenance" | "bail" | null) => void;
+
   // Universal Delta application
   applyDelta: (delta: { players?: any[]; tiles?: any[]; match?: any }, timestamp: number) => void;
 
@@ -374,6 +377,9 @@ export const useGameStore = create<GameStore>((set, get) => ({
 
   autoRollRequested: false,
   setAutoRollRequested: (val) => set({ autoRollRequested: val }),
+
+  jailDecisionRequested: null,
+  setJailDecisionRequested: (val) => set({ jailDecisionRequested: val }),
 
   // Reset entire store
   resetStore: () => set({

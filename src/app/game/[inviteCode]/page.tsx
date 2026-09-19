@@ -138,6 +138,11 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         }
       }
       
+      // Apply delta directly to Zustand store if present
+      if (event.delta && event.timestamp) {
+        useGameStore.getState().applyDelta(event.delta, event.timestamp);
+      }
+
       const win = window as any;
       let isOwnAction = false;
       if (event.actionId && win._processedActions?.has(event.actionId)) {
@@ -145,19 +150,14 @@ export default function GamePage({ params }: { params: Promise<{ inviteCode: str
         win._processedActions.delete(event.actionId);
         console.log(`[DEDUPE] Recognized and pruned own action: ${event.actionId}`);
         
-        // We drop the event to prevent redundant state writes, EXCEPT for 'dice-rolled' 
-        // which might need to process other things (or maybe we drop that too, since optimistic handled it).
-        // Actually, if we optimistic updated it, we should completely drop the echo to prevent any flicker!
+        // We drop the event to prevent redundant side effects (e.g. sounds, toasts, etc), 
+        // EXCEPT for 'dice-rolled' which triggers local animations that we want to keep synchronized.
+        // We already applied the authoritative delta above, so state is perfect.
         if (event.type !== "dice-rolled") {
           return; 
         }
       }
 
-  // Apply delta directly to Zustand store if present
-      if (event.delta && event.timestamp) {
-        useGameStore.getState().applyDelta(event.delta, event.timestamp);
-      }
-      
       // Compute and log telemetry using console.table
       if (event.telemetry && process.env.NODE_ENV !== 'production' && !isOwnAction) {
         const opponentReceivedTime = Date.now();
