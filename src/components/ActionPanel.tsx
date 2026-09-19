@@ -218,11 +218,13 @@ if (process.env.NODE_ENV !== 'production') {
     const prevInJail = player.inJail;
     const prevJailTurns = player.jailTurns;
 
+    const fee = action === "bail" ? 75 : (prevCash >= 200 ? 50 : 0);
+
     // Optimistic Update
     if (action === "bail") {
       store.updatePlayer(myPlayerId, { cash: prevCash - 75, inJail: false, jailTurns: 0 });
     } else {
-      store.updatePlayer(myPlayerId, { cash: prevCash - 50 });
+      store.updatePlayer(myPlayerId, { cash: prevCash - fee });
       // We don't optimistically assume freedom after 3 turns because it's complex logic
     }
     
@@ -240,9 +242,9 @@ if (process.env.NODE_ENV !== 'production') {
       
       (window as any)._lastAction.netEnd = performance.now();
       const a = (window as any)._lastAction;
-if (process.env.NODE_ENV !== 'production') {
-      console.log(`[TIMELINE: JAIL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
-    }
+      if (process.env.NODE_ENV !== 'production') {
+        console.log(`[TIMELINE: JAIL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
+      }
 
       if (!res.ok) {
         // Rollback
@@ -387,23 +389,57 @@ if (process.env.NODE_ENV !== 'production') {
 
   // ── Jail Choice ──
   if (pendingAction?.type === "jail-choice" && isMyTurn) {
+    const isLowBalance = (myPlayer?.cash ?? 0) < 200;
+    const turnsServed = myPlayer?.jailTurns ?? 0;
+
     return (
       <div className="deckled-edges parchment-card shadow-2xl rounded-sm p-4 w-full max-w-xs border border-[#d4ba96] text-[#4a3420] animate-in">
-        <h3 className="text-sm font-bold text-center mb-2 uppercase tracking-widest font-serif border-b border-[#cca97f]/40 pb-2 text-red-900">You're in Jail</h3>
-        <div className="flex flex-col gap-2 mt-4">
+        <h3 className="text-sm font-bold text-center mb-1 uppercase tracking-widest font-serif border-b border-[#cca97f]/40 pb-2 text-red-900">
+          You're in Jail
+        </h3>
+        <p className="text-[11px] text-center text-[#58412b] mb-3">
+          {isLowBalance ? (
+            <span className="text-emerald-700 font-semibold block">
+              Balance under $200: Maintenance fee waived ($0)! Roll for free (Turn {turnsServed + 1}/3).
+            </span>
+          ) : (
+            <span>
+              Turn {turnsServed + 1}/3 in Jail. Pay $50 maintenance or pay $75 bail to roll immediately.
+            </span>
+          )}
+        </p>
+        <div className="flex flex-col gap-2">
+          {isLowBalance ? (
+            <button
+              onClick={() => {
+                setPendingAction(null);
+                useGameStore.getState().setAutoRollRequested(true);
+              }}
+              disabled={loading}
+              className="w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded bg-emerald-800 hover:bg-emerald-700 text-white shadow-sm transition-colors flex items-center justify-center gap-1.5"
+            >
+              🎲 Roll for Doubles (Free)
+            </button>
+          ) : (
+            <button
+              onClick={() => handleJailAction("wait")}
+              disabled={loading || (myPlayer?.cash ?? 0) < 50}
+              className="w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded bg-stone-200/80 hover:bg-stone-200 text-stone-800 border border-stone-300 shadow-sm transition-colors"
+            >
+              Pay $50 Maintenance
+            </button>
+          )}
+
           <button
             onClick={() => handleJailAction("bail")}
-            disabled={loading}
-            className="w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded bg-[#f4e8d3] hover:bg-white text-[#3d2915] border border-[#d6ba8e] shadow-sm transition-colors"
+            disabled={loading || (myPlayer?.cash ?? 0) < 75}
+            className={`w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded border shadow-sm transition-colors ${
+              (myPlayer?.cash ?? 0) >= 75
+                ? "bg-[#f4e8d3] hover:bg-white text-[#3d2915] border-[#d6ba8e]"
+                : "bg-gray-200 text-gray-400 border-gray-300 cursor-not-allowed"
+            }`}
           >
-            Pay $75 &amp; Roll
-          </button>
-          <button
-            onClick={() => handleJailAction("wait")}
-            disabled={loading}
-            className="w-full text-[11px] font-bold uppercase tracking-wider py-2.5 rounded bg-stone-200/50 hover:bg-stone-200 text-stone-700 border border-stone-300 shadow-sm transition-colors"
-          >
-            Pay $50 Maintenance
+            Pay $75 Bail &amp; Roll
           </button>
         </div>
       </div>

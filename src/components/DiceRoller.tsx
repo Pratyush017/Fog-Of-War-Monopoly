@@ -117,8 +117,8 @@ export default function DiceRoller() {
     const start = performance.now();
     (window as any)._lastAction = { type: 'roll', start, actionId };
 
-    // If we already know we're in jail locally, don't start the spin
-    if (player?.inJail) {
+    // If we already know we're in jail locally with >= $200 cash, prompt for jail choice (otherwise roll for free)
+    if (player?.inJail && (player?.cash ?? 0) >= 200) {
       store.setPendingAction({ type: "jail-choice" });
       return null;
     }
@@ -193,6 +193,17 @@ export default function DiceRoller() {
       const freshStore = useGameStore.getState();
       const tileType = data.landedTileType;
       const landedAt = data.landedBoardIndex ?? data.newPosition;
+
+      // ── Handle Jail breakout / remaining in jail ──
+      if (data.wasInJail && myPlayerId) {
+        if (!data.isFreedFromJail) {
+          freshStore.updatePlayer(myPlayerId, { position: 10, inJail: true, jailTurns: data.jailTurns });
+          freshStore.updateMatch({ hasRolled: true });
+          return data;
+        } else {
+          freshStore.updatePlayer(myPlayerId, { inJail: false, jailTurns: 0 });
+        }
+      }
 
       // ── Handle GO_TO_JAIL: two-step animation ──
       if (tileType === "GO_TO_JAIL" && myPlayerId) {

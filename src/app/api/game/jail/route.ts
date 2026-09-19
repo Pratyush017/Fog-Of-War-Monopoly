@@ -67,7 +67,8 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ freed: true, action: "roll-now" });
     } else {
-      // Pay $50 maintenance
+      // Maintenance: $50 if cash >= 200, $0 if cash < 200
+      const maintenanceFee = player.cash >= 200 ? 50 : 0;
       const newJailTurns = player.jailTurns + 1;
       const isFreed = newJailTurns >= 3;
 
@@ -76,7 +77,7 @@ export async function POST(request: Request) {
         prisma.player.update({
           where: { id: playerId },
           data: {
-            cash: { decrement: 50 },
+            cash: maintenanceFee > 0 ? { decrement: maintenanceFee } : undefined,
             jailTurns: isFreed ? 0 : newJailTurns,
             inJail: !isFreed,
           },
@@ -86,7 +87,9 @@ export async function POST(request: Request) {
         prisma.gameLog.create({
           data: {
             matchId: match.id,
-            message: `${player.name} paid $50 (maintenance)`,
+            message: maintenanceFee > 0
+              ? `${player.name} paid $${maintenanceFee} (maintenance)`
+              : `${player.name} took turn in Jail (Turn ${newJailTurns}/3 - Maintenance waived)`,
             type: "jail"
           }
         })
@@ -117,11 +120,11 @@ export async function POST(request: Request) {
           type: "jail-paid",
           actionId,
           telemetry: { serverReceivedTime, serverBroadcastTime: Date.now() },
-          payload: { playerId, amount: 50, type: "maintenance" },
+          payload: { playerId, amount: maintenanceFee, type: "maintenance" },
           delta: {
             players: [{
               id: playerId,
-              cash: player.cash - 50,
+              cash: player.cash - maintenanceFee,
               jailTurns: isFreed ? 0 : newJailTurns,
               inJail: !isFreed,
             }],

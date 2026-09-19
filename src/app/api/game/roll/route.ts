@@ -45,11 +45,20 @@ export async function POST(request: Request) {
     }
 
     // ── Jail check ──
-    if (player.inJail) {
-      return NextResponse.json({
-        requiresJailDecision: true,
-        jailTurns: player.jailTurns,
-      });
+    const wasInJail = player.inJail;
+    let isFreedFromJail = false;
+    let newJailTurns = player.jailTurns;
+
+    if (wasInJail) {
+      if (player.cash >= 200) {
+        return NextResponse.json({
+          requiresJailDecision: true,
+          jailTurns: player.jailTurns,
+        });
+      }
+
+      // Player has < $200: Can roll for free
+      // Freed if rolls doubles OR if this is their 3rd turn (jailTurns + 1 >= 3)
     }
 
     // ── Negative balance / Debt check ──
@@ -63,13 +72,19 @@ export async function POST(request: Request) {
     // ── Roll dice ──
     const dice = rollDice();
 
-    
+    if (wasInJail) {
+      isFreedFromJail = dice.isDoubles || (player.jailTurns + 1 >= 3);
+      newJailTurns = isFreedFromJail ? 0 : player.jailTurns + 1;
+    }
 
     // ── Pre-compute synchronous properties ──
-    const oldPosition = player.position;
-    let newPosition = (oldPosition + dice.total) % 40;
-    const passedGo = newPosition < oldPosition && newPosition !== 0;
-    const landedOnGo = oldPosition !== 0 && newPosition === 0;
+    const oldPosition = wasInJail ? 10 : player.position;
+    let newPosition = wasInJail
+      ? (isFreedFromJail ? (10 + dice.total) % 40 : 10)
+      : (oldPosition + dice.total) % 40;
+
+    const passedGo = !wasInJail && newPosition < oldPosition && newPosition !== 0;
+    const landedOnGo = !wasInJail && oldPosition !== 0 && newPosition === 0;
 
     const landedTile = match.tiles.find((t) => t.boardIndex === newPosition);
     if (!landedTile) {
@@ -78,32 +93,61 @@ export async function POST(request: Request) {
 
     let responseAction: string | null = null;
     const landedBoardIndex = newPosition; // Position BEFORE Go-To-Jail redirect
-    if (landedTile.tileType === "PROPERTY" && !landedTile.ownerId) {
+    if ((!wasInJail || isFreedFromJail) && landedTile.tileType === "PROPERTY" && !landedTile.ownerId) {
       if (!isAutoRoll) {
         responseAction = "buy-prompt";
       }
-    } else if (landedTile.tileType === "GO_TO_JAIL") {
+    } else if ((!wasInJail || isFreedFromJail) && landedTile.tileType === "GO_TO_JAIL") {
       newPosition = 10;
     }
 
     // Pre-draw Chance/Chest cards synchronously so we can return them immediately
     let drawnCard: { description: string; effect: string; amount?: number; moveTo?: number } | null = null;
-    if (landedTile.tileType === "CHANCE") {
-      drawnCard = drawChanceCard();
-    } else if (landedTile.tileType === "CHEST") {
-      drawnCard = drawChestCard();
+    if ((!wasInJail || isFreedFromJail)) {
+      if (landedTile.tileType === "CHANCE") {
+        drawnCard = drawChanceCard();
+      } else if (landedTile.tileType === "CHEST") {
+        drawnCard = drawChestCard();
+      }
     }
 
     // ── Run heavy logic in background ──
     after(async () => {
       try {
         // Log dice result
-        await logGameEvent(
-          match.id,
-          match.inviteCode,
-          `${player.name} rolled ${dice.die1} + ${dice.die2} = ${dice.total}${dice.isDoubles ? " (DOUBLES!)" : ""}`,
-          "move"
-        );
+        if (wasInJail) {
+          if (isFreedFromJail) {
+            if (dice.isDoubles) {
+              await logGameEvent(
+                match.id,
+                match.inviteCode,
+                `🎲 ${player.name} rolled DOUBLES (${dice.die1} + ${dice.die2}) and escaped from Jail!`,
+                "jail"
+              );
+            } else {
+              await logGameEvent(
+                match.id,
+                match.inviteCode,
+                `🔓 ${player.name} served 3 turns in Jail and is now free! Rolled ${dice.die1} + ${dice.die2} = ${dice.total}`,
+                "jail"
+              );
+            }
+          } else {
+            await logGameEvent(
+              match.id,
+              match.inviteCode,
+              `🔒 ${player.name} rolled ${dice.die1} + ${dice.die2} (no doubles) — remaining in Jail (Turn ${newJailTurns}/3)`,
+              "jail"
+            );
+          }
+        } else {
+          await logGameEvent(
+            match.id,
+            match.inviteCode,
+            `${player.name} rolled ${dice.die1} + ${dice.die2} = ${dice.total}${dice.isDoubles ? " (DOUBLES!)" : ""}`,
+            "move"
+          );
+        }
 
         // Broadcast dice result
         await serverBroadcast(match.inviteCode, {
@@ -114,13 +158,50 @@ export async function POST(request: Request) {
             playerId,
             dice: [dice.die1, dice.die2],
             isDoubles: dice.isDoubles,
-            hasRolled: true,
+            hasRolled: wasInJail && !isFreedFromJail ? true : !dice.isDoubles,
             newPosition,
           },
           delta: {
-            match: { hasRolled: !dice.isDoubles }
+            match: { hasRolled: wasInJail && !isFreedFromJail ? true : !dice.isDoubles }
           }
         });
+
+        // ── Handle Jail staying vs escaping vs normal move ──
+        if (wasInJail && !isFreedFromJail) {
+          // Player failed to roll doubles and stayed in jail
+          await prisma.player.update({
+            where: { id: playerId },
+            data: {
+              jailTurns: newJailTurns,
+              position: 10,
+            },
+          });
+
+          await prisma.match.update({
+            where: { id: matchId },
+            data: { hasRolled: true },
+          });
+
+          await serverBroadcast(match.inviteCode, {
+            type: "turn-changed",
+            payload: {
+              currentTurnId: playerId,
+              hasRolled: true,
+            },
+            delta: {
+              players: [{ id: playerId, jailTurns: newJailTurns, inJail: true, position: 10 }],
+              match: { hasRolled: true },
+            }
+          });
+          return;
+        }
+
+        if (wasInJail && isFreedFromJail) {
+          await serverBroadcast(match.inviteCode, {
+            type: "jail-freed",
+            payload: { playerId },
+          });
+        }
 
         // ── Update player position ──
         let cashChange = 0;
@@ -138,7 +219,8 @@ export async function POST(request: Request) {
           data: {
             position: newPosition, // newPosition is already 10 if GO_TO_JAIL
             cash: { increment: cashChange },
-            ...(landedTile.tileType === "GO_TO_JAIL" ? { inJail: true, jailTurns: 0 } : {})
+            inJail: landedTile.tileType === "GO_TO_JAIL" ? true : false,
+            jailTurns: wasInJail && isFreedFromJail ? 0 : (landedTile.tileType === "GO_TO_JAIL" ? 0 : undefined),
           },
         });
 
@@ -161,7 +243,9 @@ export async function POST(request: Request) {
           delta: {
             players: [{
               id: playerId,
-              cash: player.cash + cashChange
+              cash: player.cash + cashChange,
+              inJail: landedTile.tileType === "GO_TO_JAIL" ? true : false,
+              jailTurns: 0,
             }]
           }
         });
@@ -393,6 +477,9 @@ export async function POST(request: Request) {
       action: responseAction,
       passedGo: passedGo || landedOnGo,
       card: drawnCard, // Card info for Chance/Chest (null otherwise)
+      wasInJail,
+      isFreedFromJail,
+      jailTurns: newJailTurns,
     });
   } catch (error) {
     console.error("Roll error:", error);

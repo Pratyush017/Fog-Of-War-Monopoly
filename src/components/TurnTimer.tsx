@@ -27,24 +27,31 @@ export default function TurnTimer() {
     if (isMyTurn) {
       const activePlayer = store.players.find((p) => p.id === myPlayerId);
 
-      // Case 1: Active player is in Jail and hasn't acted
-      if (activePlayer?.inJail) {
-        try {
-          await fetch("/api/game/jail", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, action: "wait" }),
-          });
-          store.setPendingAction(null);
-          await fetch("/api/game/end-turn", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId }),
-          });
-        } catch (error) {
-          console.error("Failed to auto-resolve jail:", error);
+      // Case 1: Active player is in Jail and hasn't rolled
+      if (activePlayer?.inJail && !currentMatch.hasRolled) {
+        if ((activePlayer.cash ?? 0) < 200) {
+          // Free roll allowed! Trigger auto-roll
+          store.setAutoRollRequested(true);
+          return;
+        } else {
+          // Has >= $200: Pay maintenance and end turn
+          try {
+            await fetch("/api/game/jail", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId, action: "wait" }),
+            });
+            store.setPendingAction(null);
+            await fetch("/api/game/end-turn", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ matchId: currentMatch.id, playerId: myPlayerId }),
+            });
+          } catch (error) {
+            console.error("Failed to auto-resolve jail:", error);
+          }
+          return;
         }
-        return;
       }
 
       // Case 2: Active player has NOT rolled the dice -> trigger auto-roll sequence
