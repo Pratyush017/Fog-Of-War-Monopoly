@@ -236,8 +236,12 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
           {textName}
         </span>
         {tile.houses > 0 && (
-          <span className="text-[15px] font-black text-amber-400 leading-none mt-0.5 drop-shadow-md">
-            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
+          <span className="text-[15px] font-black text-amber-400 leading-none mt-0.5 drop-shadow-md flex items-center justify-center">
+            {tile.houses >= 5 ? '皿' : (
+              <>
+                ⌂<span className="text-[10px] ml-px">×{tile.houses}</span>
+              </>
+            )}
           </span>
         )}
       </div>
