@@ -178,21 +178,21 @@ export default function PlayerHUD() {
   );
 
   const renderBankVault = () => (
-    <div className="space-y-2">
+    <div className="grid grid-cols-2 gap-1.5">
       {me?.loanPrincipal && me.loanPrincipal > 0 ? (
-        <div className="p-3 rounded-lg bg-amber-600/15 border border-amber-700/30 flex items-center justify-between shadow-sm min-h-[48px]">
+        <div className="col-span-2 p-2 rounded-lg bg-amber-600/15 border border-amber-700/30 flex items-center justify-between shadow-sm min-h-[36px]">
           <div className="flex items-center gap-2">
-            <span className="text-base">🏦</span>
+            <span className="text-sm">🏦</span>
             <div>
-              <div className="text-xs font-black text-amber-950 uppercase tracking-wide">
+              <div className="text-[11px] font-black text-amber-950 uppercase tracking-wide leading-tight">
                 Active {me.loanType || "Bank"} Loan
               </div>
-              <div className="text-[11px] text-amber-900 font-medium">
+              <div className="text-[9px] text-amber-900 font-medium">
                 Due: ${me.loanPrincipal + me.loanInterest} • {Math.max(0, (me.loanDeadlineTurn ?? 0) - me.turnsPlayed)} turns left
               </div>
             </div>
           </div>
-          <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-amber-800 text-amber-100 uppercase">
+          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-amber-800 text-amber-100 uppercase">
             LOCKED
           </span>
         </div>
@@ -200,20 +200,20 @@ export default function PlayerHUD() {
         <button 
           onClick={() => { setIsLoanModalOpen(true); setIsMobileBankOpen(false); }}
           disabled={!isMyTurn || (me?.isLiquidating ?? false) || !(match?.enableBank ?? true)}
-          className={`w-full group px-3 py-3 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm min-h-[48px] ${
+          className={`col-span-1 group px-2 py-1.5 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm min-h-[36px] ${
             isMyTurn && !me?.isLiquidating && (match?.enableBank ?? true)
               ? "bg-[#e5ecdb] border-[#c0d5ae] hover:bg-[#d8e2cb] active:scale-[0.98]" 
               : "bg-[#e5ecdb]/60 border-[#c0d5ae]/60 opacity-60 cursor-not-allowed"
           }`}
         >
-          <div className="flex items-center gap-2.5">
-            <svg className="w-4 h-4 text-[#33684a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div className="flex items-center gap-1.5">
+            <svg className="w-3.5 h-3.5 text-[#33684a] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <rect width="20" height="14" x="2" y="5" rx="2"/>
               <line x1="2" x2="22" y1="10" y2="10"/>
             </svg>
-            <span className="text-[13px] font-bold text-[#1a1a1a]">Bank Loans &amp; Credit</span>
+            <span className="text-[11px] font-bold text-[#1a1a1a] truncate">Bank Loans</span>
           </div>
-          <span className="text-[10px] font-bold px-2.5 py-1 rounded-[6px] bg-[#d4e4cd] text-[#33684a] border border-[#a4c7af] uppercase tracking-wider">
+          <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#d4e4cd] text-[#33684a] border border-[#a4c7af] uppercase tracking-wider hidden sm:block">
             CREDIT
           </span>
         </button>
@@ -223,43 +223,38 @@ export default function PlayerHUD() {
       <button 
         onClick={() => { setIsTradeSelectOpen(true); setIsMobileBankOpen(false); }}
         disabled={!isMyTurn || (me?.isLiquidating ?? false) || (me?.isBankrupt ?? false)}
-        className={`w-full group px-3 py-3 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm min-h-[48px] ${
+        className={`col-span-1 group px-2 py-1.5 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm min-h-[36px] ${
           isMyTurn && !me?.isLiquidating && !me?.isBankrupt
             ? "bg-[#dbe5f0] border-[#a3bdd6] hover:bg-[#cddbec] active:scale-[0.98]" 
             : "bg-[#dbe5f0]/60 border-[#a3bdd6]/60 opacity-60 cursor-not-allowed"
         }`}
       >
-        <div className="flex items-center gap-2.5">
-          <svg className="w-4 h-4 text-[#2c5e8a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <div className="flex items-center gap-1.5">
+          <svg className="w-3.5 h-3.5 text-[#2c5e8a] shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <path d="M16 3h5v5"/>
             <path d="M8 21H3v-5"/>
             <line x1="21" y1="3" x2="14" y2="10"/>
             <line x1="3" y1="21" x2="10" y2="14"/>
           </svg>
-          <span className="text-[13px] font-bold text-[#1a1a1a]">
-            Initiate Trade
+          <span className="text-[11px] font-bold text-[#1a1a1a] truncate">
+            Trade
           </span>
         </div>
-        <span className="text-[10px] font-bold px-2.5 py-1 rounded-[6px] bg-[#c4d5e6] text-[#2c5e8a] border border-[#a3bdd6] uppercase tracking-wider">
+        <span className="text-[8px] font-bold px-1.5 py-0.5 rounded bg-[#c4d5e6] text-[#2c5e8a] border border-[#a3bdd6] uppercase tracking-wider hidden sm:block">
           DEAL
         </span>
       </button>
 
       <button 
         onClick={() => { setShowBankruptcyConfirm(true); setIsMobileBankOpen(false); }}
-        className="w-full group px-3 py-3 rounded-lg bg-[#ead4d3] hover:bg-[#e0c4c2] active:scale-[0.98] border border-[#d6afae] transition-all duration-200 flex items-center justify-between shadow-sm min-h-[48px]"
+        className="col-span-2 group px-2 py-1.5 rounded-lg bg-[#ead4d3] hover:bg-[#e0c4c2] active:scale-[0.98] border border-[#d6afae] transition-all duration-200 flex items-center justify-center gap-2 shadow-sm min-h-[32px]"
       >
-        <div className="flex items-center gap-2.5">
-          <svg className="w-4 h-4 text-[#9c3636]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <line x1="12" y1="8" x2="12" y2="12"/>
-            <line x1="12" y1="16" x2="12.01" y2="16"/>
-          </svg>
-          <span className="text-[13px] font-bold text-[#9c3636]">Declare Bankruptcy</span>
-        </div>
-        <span className="text-[10px] tracking-wider font-bold px-2.5 py-1 rounded-[6px] bg-[#d9afaf] text-[#7a2828] border border-[#c49292] uppercase">
-          FORFEIT
-        </span>
+        <svg className="w-3.5 h-3.5 text-[#9c3636]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span className="text-[11px] font-bold text-[#9c3636] uppercase tracking-wider">Declare Bankruptcy</span>
       </button>
     </div>
   );
