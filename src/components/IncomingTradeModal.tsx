@@ -220,14 +220,14 @@ if (process.env.NODE_ENV !== 'production') {
 
           <button
             onClick={() => handleRespond(true)}
-            disabled={loading !== null || ((players.find(p => p.id === myPlayerId)?.debtAmount ?? 0) > 0) || ((players.find(p => p.id === myPlayerId)?.loanPrincipal ?? 0) > 0) || ((offeringPlayer?.debtAmount ?? 0) > 0) || ((offeringPlayer?.loanPrincipal ?? 0) > 0)}
+            disabled={loading !== null}
             className="flex-1 py-3.5 px-6 rounded-xl bg-[#2e6836] hover:bg-[#23532a] active:scale-[0.98] text-white font-black text-xs sm:text-sm uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 min-h-[48px]"
           >
             {loading === "accept" ? (
               "Accepting Deal..."
             ) : (
               <>
-                <span>{(((players.find(p => p.id === myPlayerId)?.debtAmount ?? 0) > 0) || ((players.find(p => p.id === myPlayerId)?.loanPrincipal ?? 0) > 0) || ((offeringPlayer?.debtAmount ?? 0) > 0) || ((offeringPlayer?.loanPrincipal ?? 0) > 0)) ? "LOCKED" : "Accept Trade Deal"}</span>
+                <span>Accept Trade Deal</span>
                 <span className="text-lg">✓</span>
               </>
             )}
