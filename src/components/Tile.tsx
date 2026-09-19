@@ -235,12 +235,12 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
         {textName}
       </span>
       
-      {/* Rent Badge (Outer Edge or Inside) */}
-      {tile.property?.rent && tile.property.rent.length > 0 && (
-        <span className="text-[8px] text-emerald-200 font-mono font-semibold">
-          ${tile.property.rent[0]}
+      {/* Upgrade Indicator (below name, replaces rent badge) */}
+      {tile.houses > 0 ? (
+        <span className="text-[10px] font-bold text-amber-300 mt-0.5 leading-none">
+          {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
         </span>
-      )}
+      ) : null}
 
       {/* Mortgaged Lock Icon */}
       {isMortgaged && (
@@ -260,15 +260,6 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
           style={{ backgroundColor: ownerColor }}
           title={`Owned by ${owner.name}`}
         ></div>
-      )}
-
-      {/* Upgrade Indicator */}
-      {tile.houses > 0 && (
-        <div className={`absolute z-30 pointer-events-none ${rentPlacement}`}>
-          <span className="text-[8px] font-bold px-1 py-px rounded bg-black/60 backdrop-blur-sm border border-amber-500/50 text-amber-300 whitespace-nowrap shadow-md">
-            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
-          </span>
-        </div>
       )}
     </div>
   );
