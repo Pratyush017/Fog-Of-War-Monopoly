@@ -261,6 +261,15 @@ const Tile = memo(function Tile({ tile, isCorner }: TileProps) {
           title={`Owned by ${owner.name}`}
         ></div>
       )}
+
+      {/* Upgrade Indicator */}
+      {tile.houses > 0 && (
+        <div className={`absolute z-30 pointer-events-none ${rentPlacement}`}>
+          <span className="text-[8px] font-bold px-1 py-px rounded bg-black/60 backdrop-blur-sm border border-amber-500/50 text-amber-300 whitespace-nowrap shadow-md">
+            {tile.houses >= 5 ? '皿' : `⌂×${tile.houses}`}
+          </span>
+        </div>
+      )}
     </div>
   );
 });

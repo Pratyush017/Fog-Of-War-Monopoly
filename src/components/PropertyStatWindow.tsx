@@ -239,11 +239,20 @@ if (process.env.NODE_ENV !== 'production') {
           )}
         </div>
 
+        {/* Upgrade Level Indicator */}
+        {isRevealed && tile && isStandard && tile.houses > 0 && (
+          <div className="mt-2 text-center">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded bg-amber-900/15 border border-amber-700/30 text-amber-800 text-xs font-bold tracking-wide">
+              {tile.houses >= 5 ? '皿 MAX UPGRADE' : `⌂×${tile.houses} UPGRADE${tile.houses > 1 ? 'S' : ''}`}
+            </span>
+          </div>
+        )}
+
         {/* Rent Table */}
-        <div className="space-y-1.5 text-xs text-[#58412b]">
+        <div className="space-y-1.5 text-xs text-[#58412b] mt-3">
           {isStandard && (
             <>
-              <div className="flex justify-between items-center py-0.5">
+              <div className={`flex justify-between items-center py-0.5 ${tile && tile.houses === 0 && owner ? 'bg-amber-100/50 rounded px-1 -mx-1' : ''}`}>
                 <span className="font-semibold uppercase tracking-wider text-[10px]">Rent</span>
                 <span className="font-mono font-bold">${baseRent}</span>
               </div>
@@ -251,24 +260,24 @@ if (process.env.NODE_ENV !== 'production') {
                 <span className="font-semibold uppercase tracking-wider text-[10px]">With Full Set</span>
                 <span className="font-mono font-bold">${rentWithSet}</span>
               </div>
-              <div className="flex justify-between items-center py-0.5">
-                <span className="font-semibold uppercase tracking-wider text-[10px]">1 Upgrade</span>
+              <div className={`flex justify-between items-center py-0.5 ${tile && tile.houses === 1 ? 'bg-amber-100/50 rounded px-1 -mx-1' : ''}`}>
+                <span className="font-semibold uppercase tracking-wider text-[10px]">⌂×1</span>
                 <span className="font-mono font-bold">${rent1House}</span>
               </div>
-              <div className="flex justify-between items-center py-0.5">
-                <span className="font-semibold uppercase tracking-wider text-[10px]">2 Upgrades</span>
+              <div className={`flex justify-between items-center py-0.5 ${tile && tile.houses === 2 ? 'bg-amber-100/50 rounded px-1 -mx-1' : ''}`}>
+                <span className="font-semibold uppercase tracking-wider text-[10px]">⌂×2</span>
                 <span className="font-mono font-bold">${rent2Houses}</span>
               </div>
-              <div className="flex justify-between items-center py-0.5">
-                <span className="font-semibold uppercase tracking-wider text-[10px]">3 Upgrades</span>
+              <div className={`flex justify-between items-center py-0.5 ${tile && tile.houses === 3 ? 'bg-amber-100/50 rounded px-1 -mx-1' : ''}`}>
+                <span className="font-semibold uppercase tracking-wider text-[10px]">⌂×3</span>
                 <span className="font-mono font-bold">${rent3Houses}</span>
               </div>
-              <div className="flex justify-between items-center py-0.5">
-                <span className="font-semibold uppercase tracking-wider text-[10px]">4 Upgrades</span>
+              <div className={`flex justify-between items-center py-0.5 ${tile && tile.houses === 4 ? 'bg-amber-100/50 rounded px-1 -mx-1' : ''}`}>
+                <span className="font-semibold uppercase tracking-wider text-[10px]">⌂×4</span>
                 <span className="font-mono font-bold">${rent4Houses}</span>
               </div>
-              <div className="flex justify-between items-center pt-2 pb-0.5 border-t border-[#cca97f]/40 mt-1">
-                <span className="font-black uppercase tracking-wider text-[10px] text-[#8e291c]">Max Upgrade</span>
+              <div className={`flex justify-between items-center pt-2 pb-0.5 border-t border-[#cca97f]/40 mt-1 ${tile && tile.houses >= 5 ? 'bg-red-100/50 rounded px-1 -mx-1' : ''}`}>
+                <span className="font-black uppercase tracking-wider text-[10px] text-[#8e291c]">皿 Max</span>
                 <span className="font-mono font-black text-[#8e291c] text-[13px]">
                   ${rentHotel}
                 </span>
