@@ -36,11 +36,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Match is not currently active" }, { status: 400 });
     }
 
-    // ── 1. ACTIVE TURN CHECK ──
-    if (match.currentTurnId !== offeringPlayerId) {
-      return NextResponse.json({ error: "You can only initiate trade offers during your active turn" }, { status: 403 });
-    }
-
+    // Turn check removed to allow out-of-turn trading
     const offeringPlayer = match.players.find((p) => p.id === offeringPlayerId);
     const targetPlayer = match.players.find((p) => p.id === targetPlayerId);
 

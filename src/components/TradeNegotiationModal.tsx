@@ -35,7 +35,6 @@ export default function TradeNegotiationModal({
 
   const me = players.find((p) => p.id === myPlayerId);
   const partner = players.find((p) => p.id === partnerId);
-  const isMyTurn = match?.currentTurnId === myPlayerId;
 
   const [offeredCash, setOfferedCash] = useState<number>(0);
   const [requestedCash, setRequestedCash] = useState<number>(0);
@@ -72,11 +71,6 @@ export default function TradeNegotiationModal({
   };
 
   const handleSendOffer = async () => {
-    if (!isMyTurn) {
-      setErrorMessage("You can only send trade offers during your active turn.");
-      return;
-    }
-
     if (
       offeredCash === 0 &&
       requestedCash === 0 &&
@@ -439,7 +433,7 @@ export default function TradeNegotiationModal({
 
             <button
               onClick={handleSendOffer}
-              disabled={loading || !isMyTurn}
+              disabled={loading}
               className="flex-1 sm:flex-initial py-3 px-6 rounded-xl bg-[#33684a] hover:bg-[#254f38] active:scale-[0.98] text-white font-black text-xs sm:text-sm uppercase tracking-widest shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 min-h-[48px]"
             >
               {loading ? "Sending..." : "Send Trade Offer 🤝"}

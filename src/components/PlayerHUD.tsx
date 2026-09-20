@@ -222,9 +222,9 @@ export default function PlayerHUD() {
       {/* Initiate Trade Button */}
       <button 
         onClick={() => { setIsTradeSelectOpen(true); setIsMobileBankOpen(false); }}
-        disabled={!isMyTurn || (me?.isLiquidating ?? false) || (me?.isBankrupt ?? false)}
+        disabled={(me?.isLiquidating ?? false) || (me?.isBankrupt ?? false)}
         className={`col-span-1 group px-2 py-1.5 rounded-lg border transition-all duration-200 flex items-center justify-between shadow-sm min-h-[36px] ${
-          isMyTurn && !me?.isLiquidating && !me?.isBankrupt
+          !me?.isLiquidating && !me?.isBankrupt
             ? "bg-[#dbe5f0] border-[#a3bdd6] hover:bg-[#cddbec] active:scale-[0.98]" 
             : "bg-[#dbe5f0]/60 border-[#a3bdd6]/60 opacity-60 cursor-not-allowed"
         }`}
