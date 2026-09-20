@@ -106,17 +106,17 @@ export default function PlayerHUD() {
         
         const cardStyle = isCurrentTurn 
           ? {
-              background: 'linear-gradient(to right, ' + pColor + '33, ' + pColor + '1A, transparent)',
-              borderColor: pColor + '80',
-              boxShadow: '0 0 0 1px ' + pColor + '66'
+              backgroundColor: pColor + '33',
+              borderColor: pColor,
+              boxShadow: `0 0 0 2px ${pColor}80, 0 4px 12px ${pColor}40`
             } 
           : {
-              background: pColor + '14',
+              backgroundColor: pColor + '14',
               borderColor: pColor + '33'
             };
 
         const baseClasses = isCurrentTurn 
-          ? "p-2 rounded-lg border shadow-sm transition-all duration-200"
+          ? "p-2 rounded-lg border shadow-md transition-all duration-200 transform scale-[1.02] z-10"
           : "p-2 rounded-lg border hover:brightness-95 transition-all duration-200 cursor-pointer";
 
         const hasActiveLoan = player.loanPrincipal > 0;
@@ -139,10 +139,10 @@ export default function PlayerHUD() {
                 <div className="scale-75">{getAvatarImage(player.avatar)}</div>
               </div>
               <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
-                 <span className={`text-[11px] font-black tracking-tight text-[#1a1a1a] truncate`} title={`${player.name}${isMe ? ' (You)' : ''}`}>
+                 <span className={`text-[11px] font-black tracking-tight ${isCurrentTurn ? 'text-[#000]' : 'text-[#1a1a1a]'} truncate`} title={`${player.name}${isMe ? ' (You)' : ''}`}>
                    {player.name}{isMe && <span className="opacity-70 font-semibold"> (You)</span>}
                  </span>
-                 {isCurrentTurn && <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0`} style={{ backgroundColor: pColor }}></span>}
+                 {isCurrentTurn && <span className={`w-2 h-2 rounded-full animate-pulse shrink-0`} style={{ backgroundColor: pColor, boxShadow: `0 0 6px ${pColor}` }}></span>}
               </div>
             </div>
 
