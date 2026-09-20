@@ -289,7 +289,7 @@ export default function PlayerHUD() {
         {/* Main Content Wrapper */}
         <div className="flex-1 flex flex-col space-y-4 px-1 min-h-0">
           {/* 1. PLAYERS SECTION */}
-          <section className="flex flex-col min-h-0 shrink-0 max-h-[35vh]">
+          <section className="flex flex-col min-h-0 shrink-0 max-h-[190px]">
             <div className="flex items-center justify-between pb-1.5 px-1 shrink-0">
               <div className="flex items-center gap-2">
                 <svg className="w-4 h-4 text-[#4a4a4a]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
