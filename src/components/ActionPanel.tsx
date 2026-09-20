@@ -202,69 +202,6 @@ if (process.env.NODE_ENV !== 'production') {
     }
   }, [match, myPlayerId, pendingAction, setPendingAction, setAuction]);
 
-  const handleJailAction = useCallback(async (action: "bail" | "wait") => {
-    if (!match || !myPlayerId) return;
-    
-    const store = useGameStore.getState();
-    const player = store.players.find((p) => p.id === myPlayerId);
-    if (!player) return;
-
-    if (action === "bail" || action === "wait") {
-      playPurchase();
-    }
-    setLoading(true);
-
-    const prevCash = player.cash;
-    const prevInJail = player.inJail;
-    const prevJailTurns = player.jailTurns;
-
-    const fee = action === "bail" ? 75 : (prevCash >= 200 ? 50 : 0);
-
-    // Optimistic Update
-    if (action === "bail") {
-      store.updatePlayer(myPlayerId, { cash: prevCash - 75, inJail: false, jailTurns: 0 });
-    } else {
-      store.updatePlayer(myPlayerId, { cash: prevCash - fee });
-      // We don't optimistically assume freedom after 3 turns because it's complex logic
-    }
-    
-    const actionId = registerOptimisticAction("jail");
-    (window as any)._lastAction = { start: performance.now() };
-    (window as any)._lastAction.local = performance.now();
-
-    try {
-      const res = await fetch("/api/game/jail", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ matchId: match.id, playerId: myPlayerId, action, actionId }),
-      });
-      const data = await res.json();
-      
-      (window as any)._lastAction.netEnd = performance.now();
-      const a = (window as any)._lastAction;
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[TIMELINE: JAIL] Click -> Local: ${(a.local - a.start).toFixed(2)}ms | Click -> NetEnd: ${(a.netEnd - a.start).toFixed(2)}ms`);
-      }
-
-      if (!res.ok) {
-        // Rollback
-        store.updatePlayer(myPlayerId, { cash: prevCash, inJail: prevInJail, jailTurns: prevJailTurns });
-        alert(data.error || "Jail action failed");
-      } else if (data.freed && data.action === "roll-now") {
-        // Dispatch event to DiceRoller to auto-roll since the button says "Pay & Roll"
-        window.dispatchEvent(new CustomEvent('monopoly:force-roll'));
-      }
-    } catch (error) {
-      console.error("Jail action failed:", error);
-      // Rollback
-      store.updatePlayer(myPlayerId, { cash: prevCash, inJail: prevInJail, jailTurns: prevJailTurns });
-      alert("Network error: Jail action failed");
-    } finally {
-      setPendingAction(null);
-      setLoading(false);
-    }
-  }, [match, myPlayerId, setPendingAction, playPurchase]);
-
   const handleQuickBid = useCallback(async (increment: number) => {
     if (!match || !myPlayerId) return;
     const targetBid = auction.currentBid + increment;
@@ -416,7 +353,9 @@ if (process.env.NODE_ENV !== 'production') {
             <button
               onClick={() => {
                 setPendingAction(null);
-                useGameStore.getState().setAutoRollRequested(true);
+                const store = useGameStore.getState();
+                store.setJailDecisionRequested("maintenance");
+                store.setAutoRollRequested(true);
               }}
               disabled={loading}
               className="w-full min-h-[44px] text-xs font-bold uppercase tracking-wider py-3 rounded-lg bg-emerald-800 hover:bg-emerald-700 active:scale-95 text-white shadow-sm transition-all flex items-center justify-center gap-1.5 touch-manipulation"
