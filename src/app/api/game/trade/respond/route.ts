@@ -124,8 +124,8 @@ export async function POST(request: Request) {
         }
 
         // Execute Swaps
-        await interceptCashInflow(tx, offeringPlayerId, requestedCash - offeredCash);
-        await interceptCashInflow(tx, targetPlayerId, offeredCash - requestedCash);
+        await interceptCashInflow(tx, offeringPlayerId, requestedCash - offeredCash, targetPlayerId);
+        await interceptCashInflow(tx, targetPlayerId, offeredCash - requestedCash, offeringPlayerId);
 
         for (const tileId of offeredPropertyTileIds) {
           await tx.matchTile.update({

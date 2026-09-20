@@ -8,7 +8,8 @@ import { calculatePlayerNetWorth } from "@/lib/game-engine";
 export async function interceptCashInflow(
   tx: Prisma.TransactionClient,
   playerId: string,
-  amount: number
+  amount: number,
+  sourcePlayerId?: string
 ): Promise<number> {
   if (amount <= 0) {
     // If it's a deduction or zero, just apply it and return 0
@@ -25,11 +26,13 @@ export async function interceptCashInflow(
     const amountToCreditor = Math.min(amount, player.debtAmount);
     const newDebtAmount = player.debtAmount - amountToCreditor;
     
-    // Pay creditor
-    await tx.player.update({
-      where: { id: player.creditorId },
-      data: { cash: { increment: amountToCreditor } }
-    });
+    // Pay creditor only if the creditor didn't send the money (prevents infinite debt forgiveness loops)
+    if (player.creditorId !== sourcePlayerId) {
+      await tx.player.update({
+        where: { id: player.creditorId },
+        data: { cash: { increment: amountToCreditor } }
+      });
+    }
 
     // Update debtor (They get the full amount because their cash was already decremented by the full debt when it was created)
     await tx.player.update({
