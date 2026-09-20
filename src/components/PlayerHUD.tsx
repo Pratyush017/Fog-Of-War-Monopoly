@@ -139,8 +139,8 @@ export default function PlayerHUD() {
                 <div className="scale-75">{getAvatarImage(player.avatar)}</div>
               </div>
               <div className="flex-1 min-w-0 flex items-center justify-between gap-1">
-                 <span className={`text-[11px] font-black tracking-tight text-[#1a1a1a] truncate`} title={player.name}>
-                   {player.name}
+                 <span className={`text-[11px] font-black tracking-tight text-[#1a1a1a] truncate`} title={`${player.name}${isMe ? ' (You)' : ''}`}>
+                   {player.name}{isMe && <span className="opacity-70 font-semibold"> (You)</span>}
                  </span>
                  {isCurrentTurn && <span className={`w-1.5 h-1.5 rounded-full animate-pulse shrink-0`} style={{ backgroundColor: pColor }}></span>}
               </div>
