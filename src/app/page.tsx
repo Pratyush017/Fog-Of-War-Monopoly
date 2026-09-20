@@ -106,12 +106,13 @@ export default function LandingPage() {
   };
 
   return (
-    <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-8 flex flex-col items-center justify-center relative min-h-[100dvh] font-sans selection:bg-amber-800 selection:text-white">
+    <div className="w-full min-h-[100dvh] md:bg-[url('/screen2.png')] bg-cover bg-center bg-no-repeat">
+      <main className="flex-grow w-full max-w-6xl mx-auto px-4 py-8 flex flex-col items-center justify-center relative min-h-[100dvh] font-sans selection:bg-amber-800 selection:text-white">
       
       {/* SCREEN 1: MAIN MENU */}
       {view === "main" && (
-        <section className="w-full flex-col items-center transition-all duration-300 flex" id="screen-main">
-          <div className="text-center mb-8">
+        <section className="w-full flex-col items-center transition-all duration-300 flex md:mt-32" id="screen-main">
+          <div className="text-center mb-8 md:hidden">
             <h1 className="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
               Fog of War<br />Monopoly
             </h1>
@@ -148,8 +149,8 @@ export default function LandingPage() {
 
       {/* SCREEN 2: INVITE CODE */}
       {view === "invite" && (
-        <section className="w-full flex-col items-center transition-all duration-300 flex" id="screen-invite">
-          <div className="text-center mb-8">
+        <section className="w-full flex-col items-center transition-all duration-300 flex md:mt-32" id="screen-invite">
+          <div className="text-center mb-8 md:hidden">
             <h1 className="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
               Fog of War<br />Monopoly
             </h1>
@@ -201,8 +202,8 @@ export default function LandingPage() {
 
       {/* SCREEN 3: CHARACTER SELECT */}
       {view === "character" && (
-        <section className="w-full flex-col items-center transition-all duration-300 flex" id="screen-character">
-          <div className="text-center mb-6">
+        <section className="w-full flex-col items-center transition-all duration-300 flex md:mt-32" id="screen-character">
+          <div className="text-center mb-6 md:hidden">
             <h1 className="title-emboss text-3xl sm:text-5xl font-extrabold uppercase leading-tight tracking-wider">
               Fog of War<br />Monopoly
             </h1>
