@@ -132,8 +132,8 @@ export default function DiceRoller() {
 
     const jailDecisionRequested = store.jailDecisionRequested;
 
-    // If we already know we're in jail locally with >= $200 cash, prompt for jail choice (unless they already made one)
-    if (player?.inJail && (player?.cash ?? 0) >= 200 && !jailDecisionRequested) {
+    // If we already know we're in jail locally with >= $75 cash, prompt for jail choice (unless they already made one)
+    if (player?.inJail && (player?.cash ?? 0) >= 75 && !jailDecisionRequested) {
       store.setPendingAction({ type: "jail-choice" });
       return null;
     }

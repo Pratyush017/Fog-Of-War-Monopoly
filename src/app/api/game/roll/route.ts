@@ -51,7 +51,8 @@ export async function POST(request: Request) {
     let jailFee = 0;
 
     if (wasInJail) {
-      if (player.cash >= 200 && !jailDecision) {
+      // Player has a choice if they can afford bail ($75)
+      if (player.cash >= 75 && !jailDecision) {
         return NextResponse.json({
           requiresJailDecision: true,
           jailTurns: player.jailTurns,
