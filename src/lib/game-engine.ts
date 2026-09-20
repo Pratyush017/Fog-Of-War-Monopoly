@@ -485,7 +485,8 @@ export function validateAndCalculateSell(tile: any, property: any): { cashChange
   if (tile.houses > 0) {
     throw new Error("Must sell upgrades before selling property");
   }
-  return { cashChange: property.originalMortgage, newOwnerId: null, newIsMortgaged: false };
+  const cashChange = tile.isMortgaged ? 0 : (property.originalMortgage ?? Math.floor(property.price / 2));
+  return { cashChange, newOwnerId: null, newIsMortgaged: false };
 }
 
 export function registerOptimisticAction(actionType: string): string {
