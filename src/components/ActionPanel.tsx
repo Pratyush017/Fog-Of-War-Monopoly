@@ -329,7 +329,7 @@ if (process.env.NODE_ENV !== 'production') {
 
   // ── Jail Choice ──
   if (pendingAction?.type === "jail-choice" && isMyTurn) {
-    const isLowBalance = (myPlayer?.cash ?? 0) < 200;
+    const isLowBalance = (myPlayer?.cash ?? 0) < 1000;
     const turnsServed = myPlayer?.jailTurns ?? 0;
 
     return (
@@ -340,7 +340,7 @@ if (process.env.NODE_ENV !== 'production') {
         <p className="text-[11px] text-center text-[#58412b] mb-3">
           {isLowBalance ? (
             <span className="text-emerald-700 font-semibold block">
-              Balance under $200: Maintenance fee waived ($0)! Roll for free (Turn {turnsServed + 1}/3).
+              Balance under $1000: Maintenance fee waived ($0)! Roll for free (Turn {turnsServed + 1}/3).
             </span>
           ) : (
             <span>

@@ -65,8 +65,8 @@ export async function POST(request: Request) {
         newJailTurns = 0;
         jailFee = 75;
         await logGameEvent(match.id, match.inviteCode, `${player.name} paid $75 bail and is freed from Jail.`, "jail");
-      } else if (jailDecision === "maintenance" || player.cash < 200) {
-        if (player.cash >= 200) {
+      } else if (jailDecision === "maintenance" || player.cash < 1000) {
+        if (player.cash >= 1000) {
           jailFee = 50;
           await logGameEvent(match.id, match.inviteCode, `${player.name} paid $50 maintenance to roll.`, "jail");
         } else {
