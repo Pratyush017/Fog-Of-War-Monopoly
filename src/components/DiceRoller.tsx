@@ -106,7 +106,18 @@ export default function DiceRoller() {
   const rolling = !!(dice?.rolling) || isRolling;
   const canRoll = isMyTurn && !rolling && !fetching && !pendingAction && !match?.hasRolled && !inDebt;
 
-  const handleRoll = useCallback(async (isAutoRollOrEvent?: boolean | React.MouseEvent) => {
+  useEffect(() => {
+    const onForceRoll = () => {
+      const btn = document.getElementById('dice-roll-button');
+      if (btn && !(btn as HTMLButtonElement).disabled) {
+        btn.click();
+      }
+    };
+    window.addEventListener('monopoly:force-roll', onForceRoll);
+    return () => window.removeEventListener('monopoly:force-roll', onForceRoll);
+  }, []);
+
+  const handleRoll = useCallback(async (isAutoRollOrEvent?: any) => {
     const isAutoRoll = typeof isAutoRollOrEvent === "boolean" ? isAutoRollOrEvent : false;
     const store = useGameStore.getState();
     const currentMatch = store.match;
@@ -429,7 +440,8 @@ export default function DiceRoller() {
           <div className="flex flex-col items-center gap-4">
             <div className="flex gap-2">
               <button
-                onClick={handleRoll}
+                id="dice-roll-button"
+                onClick={handleRoll as any}
                 disabled={!canRoll}
                 className={`px-8 py-3.5 rounded-xl bg-gradient-to-r from-cyan-950/60 via-[#162a34] to-cyan-950/60 hover:from-cyan-900/80 hover:to-cyan-900/80 active:scale-[0.98] border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 hover:text-white font-semibold text-xs tracking-wider uppercase transition-all duration-200 shadow-[0_0_20px_rgba(6,182,212,0.15)] hover:shadow-[0_0_25px_rgba(6,182,212,0.25)] flex items-center justify-center gap-2 group ${!canRoll ? 'opacity-50 cursor-not-allowed' : ''}`}
               >

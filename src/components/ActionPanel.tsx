@@ -250,6 +250,9 @@ if (process.env.NODE_ENV !== 'production') {
         // Rollback
         store.updatePlayer(myPlayerId, { cash: prevCash, inJail: prevInJail, jailTurns: prevJailTurns });
         alert(data.error || "Jail action failed");
+      } else if (data.freed && data.action === "roll-now") {
+        // Dispatch event to DiceRoller to auto-roll since the button says "Pay & Roll"
+        window.dispatchEvent(new CustomEvent('monopoly:force-roll'));
       }
     } catch (error) {
       console.error("Jail action failed:", error);
