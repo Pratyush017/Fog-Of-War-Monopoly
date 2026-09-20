@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     // ── Roll dice ──
     const dice = rollDice();
 
-    if (wasInJail) {
+    if (wasInJail && jailDecision !== "bail") {
       isFreedFromJail = dice.isDoubles || (player.jailTurns + 1 >= 3);
       newJailTurns = isFreedFromJail ? 0 : player.jailTurns + 1;
     }
